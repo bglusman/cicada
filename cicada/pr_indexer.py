@@ -875,10 +875,21 @@ class PRIndexer:
                 index = self.merge_indexes(existing_index, new_prs)
             else:
                 print("No existing index found. Performing full index...")
+                total_prs_in_repo = self._get_total_pr_count()
                 prs = self.fetch_all_prs()
                 # Map comment lines to current file state
                 self._map_all_comment_lines(prs)
-                index = self.build_index(prs)
+
+                # Check if this is a partial/interrupted fetch
+                is_partial = len(prs) < total_prs_in_repo
+
+                if is_partial:
+                    print(f"⚠️  Partial fetch: got {len(prs)}/{total_prs_in_repo} PRs.")
+                    print(f"   Setting last_pr_number=0 to allow incremental resume...")
+                    index = self.build_index(prs, preserve_last_pr=0)
+                else:
+                    # Complete fetch
+                    index = self.build_index(prs)
         else:
             # Full index (--clean)
             total_prs_in_repo = self._get_total_pr_count()
