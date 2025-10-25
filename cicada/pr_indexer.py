@@ -718,7 +718,7 @@ class PRIndexer:
         print(f"Index saved to: {output_path}")
 
     def index_repository(
-        self, output_path: str = "data/pr_index.json", incremental: bool = False
+        self, output_path: str = ".cicada/pr_index.json", incremental: bool = False
     ):
         """
         Index the repository's PRs and save to file.
@@ -777,8 +777,8 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="data/pr_index.json",
-        help="Output path for the index file (default: data/pr_index.json)",
+        default=".cicada/pr_index.json",
+        help="Output path for the index file (default: .cicada/pr_index.json)",
     )
     parser.add_argument(
         "--incremental",

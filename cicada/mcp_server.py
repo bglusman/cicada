@@ -1067,7 +1067,7 @@ class CicadaServer:
             pr_finder = PRFinder(
                 repo_path=repo_path,
                 use_index=True,
-                index_path="data/pr_index.json",
+                index_path=".cicada/pr_index.json",
                 verbose=False,
             )
 
@@ -1296,7 +1296,7 @@ class CicadaServer:
             error_msg = (
                 "PR index not available. Please run:\n"
                 "  python cicada/pr_indexer.py\n\n"
-                "This will create the PR index at data/pr_index.json"
+                "This will create the PR index at .cicada/pr_index.json"
             )
             return [TextContent(type="text", text=error_msg)]
 

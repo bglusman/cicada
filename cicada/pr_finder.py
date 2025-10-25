@@ -18,7 +18,7 @@ class PRFinder:
         self,
         repo_path: str = ".",
         use_index: bool = True,
-        index_path: str = "data/pr_index.json",
+        index_path: str = ".cicada/pr_index.json",
         verbose: bool = False,
     ):
         """
@@ -27,7 +27,7 @@ class PRFinder:
         Args:
             repo_path: Path to the git repository (defaults to current directory)
             use_index: If True, use cached index for PR lookups (default: True)
-            index_path: Path to the PR index file (default: data/pr_index.json)
+            index_path: Path to the PR index file (default: .cicada/pr_index.json)
             verbose: If True, print status messages (default: False)
         """
         self.repo_path = Path(repo_path).resolve()
@@ -409,8 +409,8 @@ def main():
     )
     parser.add_argument(
         "--index-path",
-        default="data/pr_index.json",
-        help="Path to PR index file (default: data/pr_index.json)",
+        default=".cicada/pr_index.json",
+        help="Path to PR index file (default: .cicada/pr_index.json)",
     )
 
     args = parser.parse_args()

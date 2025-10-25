@@ -16,7 +16,7 @@ def test_index_structure():
     print("Testing index structure...")
 
     # Load the created index
-    index_path = Path("data/pr_index.json")
+    index_path = Path(".cicada/pr_index.json")
 
     if not index_path.exists():
         print("❌ Index file not found")

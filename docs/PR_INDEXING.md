@@ -14,7 +14,7 @@ The PR indexing system allows you to find which pull request introduced any line
    - Builds multiple indexes:
      - commit → PR mapping
      - file → PRs mapping
-   - Saves everything to `data/pr_index.json`
+   - Saves everything to `.cicada/pr_index.json`
 
 2. **Lookup** (fast, offline):
    - Runs `git blame` to find commit SHA (local, fast)
@@ -49,7 +49,7 @@ python cicada/pr_finder.py README.md 1 --no-index
 
 ## Index Structure
 
-The index file (`data/pr_index.json`) contains:
+The index file (`.cicada/pr_index.json`) contains:
 
 ```json
 {
@@ -109,7 +109,7 @@ Index all pull requests from a GitHub repository.
 - `repo` - Path to git repository (default: current directory)
 
 **Options:**
-- `--output PATH` - Output path for index file (default: data/pr_index.json)
+- `--output PATH` - Output path for index file (default: .cicada/pr_index.json)
 - `--incremental` - Only fetch new PRs since last index (faster)
 
 **Examples:**
@@ -135,7 +135,7 @@ Find the PR that introduced a specific line of code.
 **Options:**
 - `--format {text,json,markdown}` - Output format (default: text)
 - `--no-index` - Disable index and use network instead
-- `--index-path PATH` - Path to PR index file (default: data/pr_index.json)
+- `--index-path PATH` - Path to PR index file (default: .cicada/pr_index.json)
 
 **Examples:**
 ```bash
@@ -188,7 +188,7 @@ from cicada.pr_indexer import PRIndexer
 
 indexer = PRIndexer(repo_path="/path/to/repo")
 index = indexer.index_repository(
-    output_path="data/pr_index.json",
+    output_path=".cicada/pr_index.json",
     incremental=True
 )
 ```
@@ -224,7 +224,7 @@ print(finder.format_result(result, "markdown"))
 
 **"PR index not found"**
 - Run `python cicada/pr_indexer.py .` to create the index
-- Check that `data/pr_index.json` exists
+- Check that `.cicada/pr_index.json` exists
 
 **"GitHub CLI not found"**
 - Install GitHub CLI: https://cli.github.com/
