@@ -23,7 +23,7 @@ from cicada.pr_indexer import PRIndexer
 class CicadaServer:
     """MCP server for Elixir module search."""
 
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = ".cicada/config.yaml"):
         """Initialize the server with configuration."""
         self.config = self._load_config(config_path)
         self.index = self._load_index()
