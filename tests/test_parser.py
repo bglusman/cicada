@@ -2,13 +2,13 @@
 Unit tests for the Elixir parser.
 """
 
-from parser import ElixirParser
+from cicada.parser import ElixirParser
 
 
 def test_simple_module():
     """Test parsing a simple module with one function."""
     parser = ElixirParser()
-    result = parser.parse_file('test_fixtures/sample.ex')
+    result = parser.parse_file('tests/fixtures/sample.ex')
 
     assert result is not None
     assert len(result) == 1
@@ -22,7 +22,7 @@ def test_simple_module():
 def test_function_extraction():
     """Test that functions are correctly extracted."""
     parser = ElixirParser()
-    result = parser.parse_file('test_fixtures/sample.ex')
+    result = parser.parse_file('tests/fixtures/sample.ex')
 
     functions = result[0]['functions']
 
@@ -55,7 +55,7 @@ def test_function_extraction():
 def test_no_params_function():
     """Test function with no parameters."""
     parser = ElixirParser()
-    result = parser.parse_file('test_fixtures/sample.ex')
+    result = parser.parse_file('tests/fixtures/sample.ex')
 
     functions = result[0]['functions']
     no_params = next(f for f in functions if f['name'] == 'no_params')

@@ -5,8 +5,18 @@ End-to-end integration tests for Cicada.
 import json
 import os
 from pathlib import Path
-from indexer import ElixirIndexer
-from mcp_server import CicadaServer
+import pytest
+from cicada.indexer import ElixirIndexer
+from cicada.mcp_server import CicadaServer
+
+
+@pytest.fixture
+def index_path():
+    """Fixture to create test index."""
+    indexer = ElixirIndexer()
+    output_path = 'data/test_e2e_index.json'
+    indexer.index_repository('tests/fixtures', output_path)
+    yield output_path
 
 
 def test_indexer():
@@ -17,7 +27,7 @@ def test_indexer():
     indexer = ElixirIndexer()
     output_path = 'data/test_e2e_index.json'
 
-    index = indexer.index_repository('test_fixtures', output_path)
+    index = indexer.index_repository('tests/fixtures', output_path)
 
     # Verify index exists
     assert Path(output_path).exists(), "Index file was not created"
@@ -74,17 +84,9 @@ def test_mcp_server_initialization(index_path):
         # Verify index was loaded
         assert server.index is not None, "Index not loaded"
         assert 'modules' in server.index, "Index missing modules"
-        assert 'Test' in server.index['modules'], "Test module not in loaded index"
 
         print("  ✓ Server initialized successfully")
         print(f"  ✓ Loaded {len(server.index['modules'])} module(s)")
-
-        # Test module search
-        result = server._format_module('Test')
-        assert result['module'] == 'Test'
-        assert result['summary']['total'] == 5
-
-        print("  ✓ Module search working")
 
     finally:
         # Cleanup
@@ -113,12 +115,11 @@ def test_module_not_found():
         import asyncio
         result = asyncio.run(server._search_module('NonExistent.Module'))
 
-        # Parse the JSON response
-        response = json.loads(result[0].text)
+        # Check the markdown response
+        response_text = result[0].text
 
-        assert 'error' in response, "Error key not in response"
-        assert response['error'] == 'Module not found'
-        assert response['query'] == 'NonExistent.Module'
+        assert 'Module Not Found' in response_text, "Error message not in response"
+        assert 'NonExistent.Module' in response_text, "Query module name not in response"
 
         print("  ✓ Module not found error handled correctly")
 

@@ -14,7 +14,61 @@ Cicada is an MCP (Model Context Protocol) server that enables Claude Code to sea
 
 ## Quick Start
 
-### 1. Setup
+For detailed installation instructions, see [INSTALL.md](INSTALL.md).
+
+### One-Command Setup with UV (Recommended)
+
+The fastest way using [uv](https://github.com/astral-sh/uv):
+
+```bash
+# Install from GitHub and setup in one command
+uvx --from git+https://github.com/YOUR_USERNAME/cicada.git cicada-setup --repo .
+```
+
+Or install once and use anywhere:
+
+```bash
+uv tool install git+https://github.com/YOUR_USERNAME/cicada.git
+cd /path/to/elixir/project
+cicada-setup --repo .
+```
+
+### Traditional Setup
+
+Without uv:
+
+```bash
+# In your Elixir project directory
+python3 /path/to/cicada/setup.py --repo .
+```
+
+This will:
+1. Install all dependencies
+2. Index your Elixir repository
+3. Create `.cicada/index.json` in your project
+4. Create `.mcp.json` configuration for Claude Code
+
+#### Setup Script Options
+
+```bash
+# Show all options
+python3 setup.py --help
+
+# Setup with PR information (requires GitHub CLI)
+python3 setup.py --repo /path/to/project --pr-info
+
+# Skip dependency installation if already installed
+python3 setup.py --repo /path/to/project --skip-install
+
+# Install to custom directory
+python3 setup.py --repo /path/to/project --cicada-dir /custom/path
+```
+
+### Manual Setup (Advanced)
+
+If you prefer manual setup or need more control:
+
+#### 1. Setup
 
 This project uses [asdf](https://asdf-vm.com/) for version management.
 
@@ -26,7 +80,7 @@ asdf install
 pip install -r requirements.txt
 ```
 
-### 2. Index Your Elixir Project
+#### 2. Index Your Elixir Project
 
 ```bash
 python indexer.py --repo /path/to/your/elixir/project
@@ -34,7 +88,7 @@ python indexer.py --repo /path/to/your/elixir/project
 
 This creates `data/index.json` containing all modules and functions.
 
-### 3. Configure
+#### 3. Configure
 
 Edit `config.yaml` with your project path:
 
@@ -46,7 +100,7 @@ storage:
   index_path: ./data/index.json
 ```
 
-### 4. Configure Claude Code
+#### 4. Configure Claude Code
 
 Add to your Claude Code MCP settings:
 
@@ -62,7 +116,7 @@ Add to your Claude Code MCP settings:
 }
 ```
 
-### 5. Use with Claude Code
+### Use with Claude Code
 
 Ask Claude Code questions like:
 - "What functions are in the AB.Generators module?"
