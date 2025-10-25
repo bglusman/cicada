@@ -344,7 +344,7 @@ Upgraded to Git's native function tracking using `git log -L :funcname:file`:
 ### Implementation
 
 1. **Setup Integration**
-   - `cicada-setup` now creates `.gitattributes` with `*.ex diff=elixir`
+   - `cicada` now creates `.gitattributes` with `*.ex diff=elixir`
    - Enables Git's Elixir function detection
 
 2. **API Changes**
@@ -388,7 +388,7 @@ commits = get_function_history_precise(
   - Acceptable tradeoff for simplicity
 
 - **Requires .gitattributes:** Function tracking needs `*.ex diff=elixir`
-  - Solution: Automatically created by `cicada-setup`
+  - Solution: Automatically created by `cicada`
 
 ### Benefits
 

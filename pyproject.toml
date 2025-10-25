@@ -18,10 +18,9 @@ dependencies = [
 
 [project.scripts]
 cicada-server = "cicada.mcp_server:main"
-cicada-setup = "cicada.install:main"
+cicada = "cicada.install:main"
 cicada-index = "cicada.indexer:main"
-cicada-pr-indexer = "cicada.pr_indexer:main"
-cicada-pr-finder = "cicada.pr_finder:main"
+cicada-index-pr = "cicada.pr_indexer:main"
 
 [project.optional-dependencies]
 dev = [

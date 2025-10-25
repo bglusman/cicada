@@ -58,14 +58,14 @@ uv tool install git+https://github.com/wende/cicada.git
 
 # Then setup in each project
 cd /path/to/your/elixir/project
-cicada-setup
+cicada
 ```
 
 **Available commands after install:**
 - `cicada-server` - MCP server
-- `cicada-setup` - Project setup
+- `cicada` - Project setup
 - `cicada-index` - Elixir code indexer
-- `cicada-pr-indexer` - PR indexer
+- `cicada-index-pr` - PR indexer
 
 ### Try Before Installing
 
@@ -73,7 +73,7 @@ Test Cicada without installation:
 
 ```bash
 cd /path/to/your/elixir/project
-uvx --from git+https://github.com/wende/cicada.git cicada-setup
+uvx --from git+https://github.com/wende/cicada.git cicada
 ```
 
 **Note:** This works but MCP server startup will be slower and you lose the option to use PR indexing features. Install permanently with `uv tool install` for best performance.
@@ -95,7 +95,7 @@ After installation, ask your AI coding assistant:
 
 **For PR features**, first run:
 ```bash
-cicada-pr-indexer .
+cicada-index-pr .
 ```
 
 ---
@@ -104,7 +104,7 @@ cicada-pr-indexer .
 
 ### Automatic Configuration
 
-`cicada-setup` automatically detects how Cicada is installed and generates the optimal `.mcp.json`:
+`cicada` automatically detects how Cicada is installed and generates the optimal `.mcp.json`:
 
 **With `uv tool install` (recommended):**
 ```json
@@ -137,26 +137,26 @@ cicada-pr-indexer .
 **Migration tip:** If you have the Python version, run:
 ```bash
 uv tool install git+https://github.com/wende/cicada.git
-cicada-setup  # Re-run to get optimized config
+cicada  # Re-run to get optimized config
 ```
 
 ### Setup Options
 
 ```bash
 # Basic setup (current directory)
-cicada-setup
+cicada
 
 # Skip dependency installation
-cicada-setup --skip-install
+cicada --skip-install
 
 # Specify a different repository path
-cicada-setup /path/to/other/project
+cicada /path/to/other/project
 ```
 
-**Note:** The `--pr-info` flag has been removed. Use `cicada-pr-indexer` instead:
+**Note:** The `--pr-info` flag has been removed. Use `cicada-index-pr` instead:
 ```bash
 # After setup, optionally index PRs
-cicada-pr-indexer .
+cicada-index-pr .
 ```
 
 ### Re-indexing
@@ -168,7 +168,7 @@ After code changes, re-index your project:
 cicada-index --output .cicada/index.json
 
 # Or re-run full setup (skips install by default)
-cicada-setup --skip-install
+cicada --skip-install
 ```
 
 ### PR Indexing (Optional)
@@ -177,17 +177,10 @@ Index pull requests for enhanced git history features:
 
 ```bash
 # Full index (first time, requires GitHub CLI)
-cicada-pr-indexer .
+cicada-index-pr .
 
 # Incremental update (faster, only new PRs)
-cicada-pr-indexer . --incremental
-
-# Find which PR introduced a line
-cicada-pr-finder lib/my_module.ex 42
-
-# Output formats
-cicada-pr-finder lib/my_module.ex 42 --format markdown
-cicada-pr-finder lib/my_module.ex 42 --format json
+cicada-index-pr . --incremental
 ```
 
 **Requirements:**
@@ -428,7 +421,7 @@ This PR adds JWT-based authentication to the User module...
 Creates the basic User module structure
 ```
 
-**Note:** Requires PR index (run `cicada-pr-indexer .` first)
+**Note:** Requires PR index (run `cicada-index-pr .` first)
 
 ### `get_file_history`
 Get commit history for a file or function. Tracks functions even as they move within the file.
@@ -638,14 +631,14 @@ brew install gh  # macOS
 gh auth login
 
 # Index PRs (first time or after new PRs)
-cicada-pr-indexer .
+cicada-index-pr .
 
 # Incremental update (faster)
-cicada-pr-indexer . --incremental
+cicada-index-pr . --incremental
 ```
 
 **Common issues:**
-- "No PR index found" → Run `cicada-pr-indexer .`
+- "No PR index found" → Run `cicada-index-pr .`
 - "Not a GitHub repository" → Ensure repo has GitHub remote
 - Slow indexing → Use `--incremental` for updates
 

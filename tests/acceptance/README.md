@@ -78,4 +78,4 @@ Test git history tracking for functions. Tracks functions even as they move with
 ./tests/acceptance/test_function_history.sh README.md --line-mode --start 1 --end 50 --evolution
 ```
 
-**Note:** Requires `.gitattributes` with `*.ex diff=elixir` (automatically created by `cicada-setup`)
+**Note:** Requires `.gitattributes` with `*.ex diff=elixir` (automatically created by `cicada`)
