@@ -1025,6 +1025,10 @@ class PRIndexer:
 def main():
     """CLI entry point for pr_indexer."""
     import argparse
+    from cicada.version_check import check_for_updates
+
+    # Check for updates (non-blocking, fails silently)
+    check_for_updates()
 
     parser = argparse.ArgumentParser(
         description="Index GitHub pull requests for fast offline lookup"

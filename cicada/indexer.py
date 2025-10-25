@@ -144,6 +144,11 @@ class ElixirIndexer:
 
 def main():
     """Main entry point for the indexer CLI."""
+    from cicada.version_check import check_for_updates
+
+    # Check for updates (non-blocking, fails silently)
+    check_for_updates()
+
     parser = argparse.ArgumentParser(
         description="Index current Elixir repository to extract modules and functions"
     )

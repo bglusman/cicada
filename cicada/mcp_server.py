@@ -1373,11 +1373,17 @@ class CicadaServer:
             lines.append(f"- **Status:** {status}")
             lines.append(f"- **URL:** {pr['url']}\n")
 
-            # PR Description
+            # PR Description (trimmed to first 10 lines)
             description = pr.get("description", "").strip()
             if description:
                 lines.append("### Description")
-                lines.append(f"{description}\n")
+                desc_lines = description.split("\n")
+                if len(desc_lines) > 10:
+                    trimmed_desc = "\n".join(desc_lines[:10])
+                    lines.append(f"{trimmed_desc}")
+                    lines.append(f"\n*... (trimmed, {len(desc_lines) - 10} more lines)*\n")
+                else:
+                    lines.append(f"{description}\n")
 
             # Review Comments for this file only
             comments = pr.get("comments", [])
