@@ -579,6 +579,70 @@ class PRIndexer:
 
         return detailed_prs
 
+    def _merge_partial_clean(
+        self, existing_index: Dict[str, Any], partial_index: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Merge a partial clean build with an existing index.
+
+        This is used when a --clean rebuild is interrupted. We want to keep both:
+        - PRs from the existing index (old data)
+        - PRs from the partial new index (newly fetched data)
+
+        Args:
+            existing_index: The old complete/partial index
+            partial_index: The new partial index from interrupted --clean
+
+        Returns:
+            Merged index with all PRs from both indexes
+        """
+        print("Merging partial index with existing index...")
+
+        # Start with existing index structure
+        merged = existing_index.copy()
+
+        # Update PRs: add/replace with new PRs from partial index
+        for pr_num_str, pr_data in partial_index["prs"].items():
+            merged["prs"][pr_num_str] = pr_data
+
+        # Rebuild commit -> PR mapping from scratch (most reliable)
+        commit_to_pr = {}
+        for pr_num_str, pr in merged["prs"].items():
+            pr_number = int(pr_num_str)
+            for commit in pr["commits"]:
+                commit_to_pr[commit] = pr_number
+
+        merged["commit_to_pr"] = commit_to_pr
+
+        # Rebuild file -> PRs mapping from scratch
+        file_to_prs = {}
+        for pr_num_str, pr in merged["prs"].items():
+            pr_number = int(pr_num_str)
+            for file_path in pr.get("files_changed", []):
+                if file_path not in file_to_prs:
+                    file_to_prs[file_path] = []
+                file_to_prs[file_path].append(pr_number)
+
+        # Sort PR numbers for each file (newest first)
+        for file_path in file_to_prs:
+            file_to_prs[file_path].sort(reverse=True)
+
+        merged["file_to_prs"] = file_to_prs
+
+        # Count total comments
+        total_comments = sum(len(pr.get("comments", [])) for pr in merged["prs"].values())
+
+        # Update metadata (use partial_index's last_pr_number which was preserved)
+        merged["metadata"]["last_indexed_at"] = datetime.now().isoformat()
+        merged["metadata"]["total_prs"] = len(merged["prs"])
+        merged["metadata"]["total_commits_mapped"] = len(commit_to_pr)
+        merged["metadata"]["total_comments"] = total_comments
+        merged["metadata"]["total_files"] = len(file_to_prs)
+        merged["metadata"]["last_pr_number"] = partial_index["metadata"].get("last_pr_number", 0)
+
+        print(f"Merged: {len(merged['prs'])} total PRs ({len(partial_index['prs'])} new/updated)")
+        return merged
+
     def merge_indexes(
         self, existing_index: Dict[str, Any], new_prs: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
@@ -817,21 +881,23 @@ class PRIndexer:
                 index = self.build_index(prs)
         else:
             # Full index (--clean)
-            print(f"Starting clean rebuild (will preserve last_pr_number={old_last_pr} if interrupted)...")
+            total_prs_in_repo = self._get_total_pr_count()
+            print(f"Starting clean rebuild ({total_prs_in_repo} PRs in repository)...")
+
             prs = self.fetch_all_prs()
             # Map comment lines to current file state
             self._map_all_comment_lines(prs)
 
-            # If interrupted and we only got some PRs, preserve the old last_pr_number
-            # This allows incremental updates to continue working for NEW PRs
-            # User can run --clean again later to fill in the missing middle PRs
-            total_prs_in_repo = self._get_total_pr_count()
-            if len(prs) < total_prs_in_repo:
-                print(f"⚠️  Partial index: got {len(prs)}/{total_prs_in_repo} PRs.")
-                print(f"   Preserving last_pr_number={old_last_pr} for incremental updates.")
-                index = self.build_index(prs, preserve_last_pr=old_last_pr)
+            # If interrupted and we only got some PRs, merge with existing index
+            if len(prs) < total_prs_in_repo and existing_index:
+                print(f"⚠️  Partial fetch: got {len(prs)}/{total_prs_in_repo} PRs.")
+                print(f"   Merging with existing index to preserve progress...")
+                # Build index from new PRs, then merge with old index
+                new_index = self.build_index(prs, preserve_last_pr=old_last_pr)
+                # Merge: existing index + new PRs
+                index = self._merge_partial_clean(existing_index, new_index)
             else:
-                # Complete fetch
+                # Complete fetch or no existing index
                 index = self.build_index(prs)
 
         # Save index
