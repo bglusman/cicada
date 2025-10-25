@@ -276,12 +276,11 @@ class PRIndexer:
             return detailed_prs
 
         except subprocess.CalledProcessError as e:
-            # Fall back to slower REST API if GraphQL fails
-            print(f"  Warning: GraphQL failed, falling back to REST API: {e.stderr}")
-            return [self._fetch_pr_rest(num) for num in pr_numbers]
+            # GraphQL failed - crash with clear error message
+            raise RuntimeError(f"GraphQL query failed for PRs {pr_numbers}: {e.stderr}")
         except (json.JSONDecodeError, KeyError) as e:
-            print(f"  Warning: Failed to parse GraphQL response: {e}")
-            return [self._fetch_pr_rest(num) for num in pr_numbers]
+            # Failed to parse response - crash with clear error message
+            raise RuntimeError(f"Failed to parse GraphQL response for PRs {pr_numbers}: {e}")
 
     def _fetch_pr_rest(self, pr_number: int) -> Dict[str, Any]:
         """
@@ -563,10 +562,42 @@ class PRIndexer:
             raise RuntimeError(f"Failed to parse PR data: {e}")
 
         # Step 2: Fetch OLDER PRs (< min_pr, going downward)
+        # Query GitHub for actual PR numbers that exist below min_pr
         older_pr_numbers = []
         if min_pr > 1:
-            # We need to fetch PRs from 1 to min_pr-1
-            older_pr_numbers = list(range(min_pr - 1, 0, -1))  # Descending order
+            try:
+                # Fetch list of all PRs in the repo (up to 10000)
+                # We'll filter for ones < min_pr
+                result = subprocess.run(
+                    [
+                        "gh",
+                        "pr",
+                        "list",
+                        "--state",
+                        "all",
+                        "--json",
+                        "number",
+                        "--limit",
+                        "10000",  # GitHub's max
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    cwd=self.repo_path,
+                )
+
+                all_prs = json.loads(result.stdout)
+
+                # Filter for PRs below min_pr and sort descending
+                older_pr_numbers = sorted(
+                    [pr["number"] for pr in all_prs if pr["number"] < min_pr],
+                    reverse=True  # Descending order (newest-first among older PRs)
+                )
+
+            except subprocess.CalledProcessError as e:
+                print(f"Warning: Could not fetch older PR list: {e.stderr}")
+            except json.JSONDecodeError as e:
+                print(f"Warning: Could not parse older PR list: {e}")
 
         all_to_fetch = newer_pr_numbers + older_pr_numbers
 
