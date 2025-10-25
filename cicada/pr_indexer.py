@@ -503,7 +503,7 @@ class PRIndexer:
         self, existing_index: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """
-        Fetch missing PRs in both directions: newer and older missing ones.
+        Fetch PRs bidirectionally: newer (above max) and older (below min).
 
         Args:
             existing_index: The existing index dictionary
@@ -511,12 +511,21 @@ class PRIndexer:
         Returns:
             List of new PRs
         """
-        last_pr_number = existing_index.get("metadata", {}).get("last_pr_number", 0)
-        existing_pr_numbers = set(int(num) for num in existing_index.get("prs", {}).keys())
+        # Get min and max PR numbers currently in the index
+        existing_pr_numbers = [int(num) for num in existing_index.get("prs", {}).keys()]
 
-        print(f"Performing incremental update (last indexed: #{last_pr_number})...")
+        if not existing_pr_numbers:
+            # Empty index, shouldn't happen in incremental mode but handle it
+            print("Empty index, performing full fetch...")
+            return self.fetch_all_prs()
 
-        # Step 1: Fetch NEWER PRs (> last_pr_number)
+        min_pr = min(existing_pr_numbers)
+        max_pr = max(existing_pr_numbers)
+        total_prs_in_repo = self._get_total_pr_count()
+
+        print(f"Performing incremental update (index range: #{min_pr}-#{max_pr}, repo has {total_prs_in_repo} PRs)...")
+
+        # Step 1: Fetch NEWER PRs (> max_pr)
         newer_pr_numbers = []
         fetch_limit = 1000
 
@@ -544,7 +553,7 @@ class PRIndexer:
             # PRs are returned newest-first by default
             for pr in pr_list:
                 pr_num = pr["number"]
-                if pr_num <= last_pr_number:
+                if pr_num <= max_pr:
                     break
                 newer_pr_numbers.append(pr_num)
 
@@ -553,48 +562,46 @@ class PRIndexer:
         except json.JSONDecodeError as e:
             raise RuntimeError(f"Failed to parse PR data: {e}")
 
-        # Step 2: Check for OLDER missing PRs (gaps in the index)
-        older_missing = []
-        if last_pr_number > 0:
-            # Find PRs from 1 to last_pr_number that are missing
-            expected_prs = set(range(1, last_pr_number + 1))
-            missing_prs = expected_prs - existing_pr_numbers
-            older_missing = sorted(missing_prs, reverse=True)  # Newest-first for consistency
+        # Step 2: Fetch OLDER PRs (< min_pr, going downward)
+        older_pr_numbers = []
+        if min_pr > 1:
+            # We need to fetch PRs from 1 to min_pr-1
+            older_pr_numbers = list(range(min_pr - 1, 0, -1))  # Descending order
 
-        all_to_fetch = newer_pr_numbers + older_missing
+        all_to_fetch = newer_pr_numbers + older_pr_numbers
 
         if not all_to_fetch:
-            print(f"Found 0 new or missing PRs")
+            print(f"Index is complete (no newer or older PRs to fetch)")
             return []
 
         print(f"Found {len(newer_pr_numbers)} newer PRs", end="")
-        if older_missing:
-            print(f" and {len(older_missing)} older missing PRs (filling gaps)")
+        if older_pr_numbers:
+            print(f" and {len(older_pr_numbers)} older PRs to fetch (going downward from #{min_pr})")
         else:
             print()
 
         # Fetch detailed info for all PRs
         detailed_prs = []
         batch_size = 10
-        total_batches = (len(all_to_fetch) + batch_size - 1) // batch_size
 
         try:
             # Fetch newer PRs first
             if newer_pr_numbers:
                 newer_batches = (len(newer_pr_numbers) + batch_size - 1) // batch_size
+                print(f"\n⬆️  Fetching {len(newer_pr_numbers)} newer PRs...")
                 for i in range(0, len(newer_pr_numbers), batch_size):
                     batch = newer_pr_numbers[i:i + batch_size]
-                    print(f"  Fetching newer batch {i//batch_size + 1}/{newer_batches} ({len(batch)} PRs)...")
+                    print(f"  Batch {i//batch_size + 1}/{newer_batches} ({len(batch)} PRs)...")
                     batch_prs = self._fetch_prs_batch_graphql(batch)
                     detailed_prs.extend(batch_prs)
 
-            # Then fetch older missing PRs
-            if older_missing:
-                print(f"\n📦 Filling gaps: fetching {len(older_missing)} older missing PRs...")
-                older_batches = (len(older_missing) + batch_size - 1) // batch_size
-                for i in range(0, len(older_missing), batch_size):
-                    batch = older_missing[i:i + batch_size]
-                    print(f"  Fetching older batch {i//batch_size + 1}/{older_batches} ({len(batch)} PRs)...")
+            # Then fetch older PRs (going downward)
+            if older_pr_numbers:
+                older_batches = (len(older_pr_numbers) + batch_size - 1) // batch_size
+                print(f"\n⬇️  Fetching {len(older_pr_numbers)} older PRs (going downward from #{min_pr})...")
+                for i in range(0, len(older_pr_numbers), batch_size):
+                    batch = older_pr_numbers[i:i + batch_size]
+                    print(f"  Batch {i//batch_size + 1}/{older_batches} ({len(batch)} PRs)...")
                     batch_prs = self._fetch_prs_batch_graphql(batch)
                     detailed_prs.extend(batch_prs)
 
