@@ -893,18 +893,19 @@ class PRIndexer:
 
             if is_partial:
                 print(f"⚠️  Partial fetch: got {len(prs)}/{total_prs_in_repo} PRs.")
+                print(f"   Setting last_pr_number=0 to allow incremental resume...")
+
+                # ALWAYS set last_pr_number=0 on partial --clean, regardless of existing index
+                # This forces the next incremental run to fetch ALL PRs, completing the index
+                # --clean means "rebuild from scratch", so partial = incomplete = reset to 0
 
                 if existing_index:
-                    # Merge with existing index to preserve progress
-                    print(f"   Merging with existing index to preserve progress...")
-                    new_index = self.build_index(prs, preserve_last_pr=old_last_pr)
+                    # Merge with existing index to preserve the actual PR data
+                    print(f"   Merging with existing index to preserve PR data...")
+                    new_index = self.build_index(prs, preserve_last_pr=0)
                     index = self._merge_partial_clean(existing_index, new_index)
                 else:
-                    # No existing index - build new one but set last_pr_number conservatively
-                    # Set it to the MINIMUM PR we fetched, so incremental will re-fetch everything
-                    print(f"   Setting last_pr_number=0 to allow incremental resume...")
-                    min_pr = min(pr["number"] for pr in prs) if prs else 0
-                    # Actually, set to 0 to be safe and force full incremental on next run
+                    # No existing index - build new one with last_pr_number=0
                     index = self.build_index(prs, preserve_last_pr=0)
             else:
                 # Complete fetch
