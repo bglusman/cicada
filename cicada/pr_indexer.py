@@ -888,16 +888,26 @@ class PRIndexer:
             # Map comment lines to current file state
             self._map_all_comment_lines(prs)
 
-            # If interrupted and we only got some PRs, merge with existing index
-            if len(prs) < total_prs_in_repo and existing_index:
+            # Check if this is a partial/interrupted fetch
+            is_partial = len(prs) < total_prs_in_repo
+
+            if is_partial:
                 print(f"⚠️  Partial fetch: got {len(prs)}/{total_prs_in_repo} PRs.")
-                print(f"   Merging with existing index to preserve progress...")
-                # Build index from new PRs, then merge with old index
-                new_index = self.build_index(prs, preserve_last_pr=old_last_pr)
-                # Merge: existing index + new PRs
-                index = self._merge_partial_clean(existing_index, new_index)
+
+                if existing_index:
+                    # Merge with existing index to preserve progress
+                    print(f"   Merging with existing index to preserve progress...")
+                    new_index = self.build_index(prs, preserve_last_pr=old_last_pr)
+                    index = self._merge_partial_clean(existing_index, new_index)
+                else:
+                    # No existing index - build new one but set last_pr_number conservatively
+                    # Set it to the MINIMUM PR we fetched, so incremental will re-fetch everything
+                    print(f"   Setting last_pr_number=0 to allow incremental resume...")
+                    min_pr = min(pr["number"] for pr in prs) if prs else 0
+                    # Actually, set to 0 to be safe and force full incremental on next run
+                    index = self.build_index(prs, preserve_last_pr=0)
             else:
-                # Complete fetch or no existing index
+                # Complete fetch
                 index = self.build_index(prs)
 
         # Save index
