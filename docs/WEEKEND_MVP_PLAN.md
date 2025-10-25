@@ -38,10 +38,14 @@
 **Current State:** v0 diverged from the weekend plan to focus on module/function search with call site tracking and PR attribution, rather than the comprehensive context building originally planned.
 
 **REJECTED Functionality (Not in Scope):**
-- 🚫 **Fuzzy Finding** - No partial name matching or "did you mean" suggestions
+- 🚫 **Fuzzy Finding** - No partial name matching or "did you mean" suggestions (grep is sufficient)
 - 🚫 **Function Suggestions** - No similar function recommendations
 - 🚫 **Alternative Functions** - No bang/non-bang, different arity, or related function suggestions
 - 🚫 **Similarity Search** - Exact names only, no fuzzy matching algorithms
+- 🚫 **Confidence Scoring** - All functionality has 100% deterministic confidence; no ML/AI scoring
+- 🚫 **Comprehensive Context Aggregation** - Keep it simple; explicit is better than implicit
+- 🚫 **Advanced Implementation Guidance** - Usage examples are sufficient; no error pattern mining
+- 🚫 **Multi-Repository Support** - Single repository focus for simplicity
 
 ---
 
@@ -49,24 +53,33 @@
 
 This plan delivers a **minimal viable product** of Cicada in one weekend. The focus is on getting two critical scenarios working end-to-end, skipping all non-essential features and fancy technology.
 
-### What You'll Build
+### What Was Actually Built (v0)
 
 A Python-based MCP server that Claude Code can use to:
-- Understand function usage across a codebase
-- Find test coverage for functions
-- Discover related documentation
-- Access git history and GitHub PRs
-- Get implementation examples and conventions
+- ✅ Search modules and functions with exact name matching
+- ✅ Track function call sites with alias resolution
+- ✅ Find PR attribution via git blame + GitHub CLI
+- ✅ View function usage examples with actual code snippets
+- ✅ Filter by test files only
+- ✅ Output in multiple formats (markdown, JSON)
+- ✅ Track module dependencies (aliases, imports, requires, uses)
 
-### What You'll Skip (For Now)
+### What's Permanently Out of Scope
 
-- ❌ Vector/semantic search (FAISS)
-- ❌ Database systems (SurrealDB)
-- ❌ Keyword search engines (Tantivy)
-- ❌ Hybrid search and reranking
-- ❌ Real-time indexing
-- ❌ Web UI
-- ❌ Multi-language support
+- 🚫 Vector/semantic search (FAISS) - Deterministic results only
+- 🚫 Database systems (SurrealDB) - JSON files are sufficient
+- 🚫 Keyword search engines (Tantivy) - grep/ripgrep work fine
+- 🚫 Hybrid search and reranking - Unnecessary complexity
+- 🚫 Fuzzy matching / "did you mean" - Use grep instead
+- 🚫 Confidence scoring - All results are 100% confident
+- 🚫 Multi-repository support - Single repo focus
+
+### Future Possibilities (Stretch Goals Only)
+
+- Real-time incremental indexing
+- Web UI for exploration
+- Multi-language support (Python, TypeScript, Rust)
+- Documentation markdown file indexing
 
 ---
 
@@ -2494,31 +2507,41 @@ python -c "import yaml; yaml.safe_load(open('config.yaml'))"
 
 ## Post-Weekend Roadmap
 
-### Week 2: Refinement
-- [ ] Add caching layer for frequent queries
-- [ ] Improve test detection heuristics
+### v0 Status: ✅ COMPLETE AND EXCEEDED
+
+The original weekend MVP plan has been completed with significant additions:
+- ✅ Module and function search
+- ✅ Call site tracking with alias resolution
+- ✅ PR attribution with git blame + GitHub CLI
+- ✅ Usage examples with code snippets
+- ✅ Test file filtering
+- ✅ Multiple output formats
+
+### Potential Future Enhancements (v0.1)
+
+**Only if there's clear user demand:**
+- [ ] Documentation markdown file indexing
+- [ ] Extended git commit history integration
 - [ ] Better error handling and recovery
 - [ ] Add logging and debugging
 
-### Week 3: Enhancement
-- [ ] Add vector search for semantic similarity
-- [ ] Implement BM25 for better text search
-- [ ] Add real-time file watching
-- [ ] Create simple web UI
+### Rejected / Out of Scope
 
-### Week 4: Scale
-- [ ] Optimize indexing speed
-- [ ] Add incremental indexing
-- [ ] Support multiple repositories
-- [ ] Add PostgreSQL backend option
+**These will NOT be implemented:**
+- 🚫 Vector search for semantic similarity - Deterministic only
+- 🚫 BM25 or any text search engines - grep is sufficient
+- 🚫 Confidence scoring or test detection heuristics - 100% deterministic
+- 🚫 Multiple repository support - Single repo focus
+- 🚫 PostgreSQL or any database backend - JSON files work fine
+- 🚫 Custom reranking models - No ML/AI features
+- 🚫 Fuzzy finding or "did you mean" - Use grep instead
 
-### Future Features
-- [ ] Multi-language support (Python, TypeScript, Rust)
-- [ ] Team collaboration features
-- [ ] Custom reranking models
-- [ ] Integration with more VCS systems
-- [ ] Documentation generation
-- [ ] Code quality metrics
+### Stretch Goals (Long Term)
+
+**Low priority, may never happen:**
+- Real-time incremental indexing
+- Simple web UI for exploration
+- Multi-language support (Python, TypeScript, Rust)
 
 ---
 
@@ -2567,35 +2590,28 @@ You're building an MVP - **don't over-engineer:**
 
 ---
 
-## Minimum Viable Cutbacks
+## v0 Implementation Status
 
-If you absolutely must reduce scope, cut in this order:
+### ✅ Core Features (Completed)
+- ✅ Function indexing with full AST parsing
+- ✅ Usage finding with alias resolution
+- ✅ MCP server with 4 tools (search_module, search_function, search_module_usage, find_pr_for_line)
+- ✅ Test file filtering
+- ✅ GitHub PR integration via git blame + gh CLI
+- ✅ Usage examples with code snippets
+- ✅ Multiple output formats (markdown, JSON)
 
-### Priority 1: Keep
-- ✅ Function indexing
-- ✅ Usage finding (callers)
-- ✅ Basic MCP server with one tool
+### 🚫 Rejected Features (Will NOT Implement)
+- 🚫 Alternative functions / fuzzy finding
+- 🚫 Usage pattern extraction beyond examples
+- 🚫 Error pattern detection
+- 🚫 Confidence scoring
+- 🚫 Comprehensive context aggregation
+- 🚫 Multi-repository support
 
-### Priority 2: Keep If Possible
-- ⚠️ Test detection
-- ⚠️ Git commit history
-- ⚠️ Document search
+### Project Status: v0 COMPLETE ✅
 
-### Priority 3: Can Skip
-- ❌ GitHub PR integration
-- 🚫 **REJECTED:** Alternative functions (fuzzy finding removed)
-- ❌ Usage patterns extraction
-- ❌ Error pattern detection
-
-### Absolute Minimum
-
-The **bare minimum** for a demo:
-1. Parse Elixir code ✅
-2. Build function index ✅
-3. Find where functions are used ✅
-4. Return this via MCP ✅
-
-That's it! Everything else is enhancement.
+The absolute minimum has been **exceeded significantly**. The project is production-ready for single Elixir repository code intelligence.
 
 ---
 

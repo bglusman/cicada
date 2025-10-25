@@ -358,42 +358,45 @@ cicada-index --output .cicada/index.json
 
 ## Roadmap
 
-### v0 (Current)
+### v0 (Current) ✅
 - Module and function search
-- Call site tracking
-- PR attribution
-- Basic MCP integration
+- Call site tracking with alias resolution
+- PR attribution via git blame + GitHub
+- Function usage examples with code snippets
+- Test file filtering
+- Multiple output formats (markdown, JSON)
 
-### v0.1 (Planned)
-- Enhanced test detection with confidence scoring
+### v0.1 (Potential Future Enhancements)
 - Documentation search in markdown files
-- Git commit history integration
-- Usage pattern extraction
+- Extended git commit history integration
 
-### v0.2 (Future)
-- Comprehensive context aggregation
-- Implementation guidance (error patterns, conventions)
-- Improved fuzzy search capabilities
-- Multi-repository support
-
-### Long Term
+### Long Term (Stretch Goals)
 - Multi-language support (Python, TypeScript, Rust)
 - Semantic code search
 - Real-time incremental indexing
 - Web UI for exploration
 
+### Out of Scope (Non-Goals)
+These features are explicitly **not planned**:
+- Fuzzy search / "did you mean" suggestions (grep is sufficient)
+- Function similarity algorithms or recommendations
+- Confidence scoring systems
+- Multi-repository support (single repo focus)
+- Alternative function suggestions (bang/non-bang variants)
+
 ---
 
-## Limitations (v0)
+## Design Decisions
 
-Current limitations:
-- Exact match only (no fuzzy search)
-- Direct call tracking only (not comprehensive call graphs)
-- No automatic documentation file search
-- No function similarity suggestions
-- No usage convention extraction
+CICADA prioritizes simplicity and reliability over complexity:
 
-These features may be added in future versions.
+### Intentional Constraints
+- **Exact name matching only** - Use grep/ripgrep for fuzzy searches; keeping CICADA focused
+- **Direct call tracking** - Tracks explicit function calls; comprehensive call graphs add complexity without enough value
+- **Manual documentation search** - Documentation indexing planned for v0.1
+- **No AI/ML features** - No similarity algorithms, confidence scoring, or recommendations; deterministic results only
+
+These are deliberate design choices to keep CICADA fast, predictable, and maintainable.
 
 ---
 

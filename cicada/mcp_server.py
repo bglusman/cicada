@@ -16,6 +16,7 @@ from mcp.types import Tool, TextContent
 
 from cicada.formatter import ModuleFormatter
 from cicada.pr_finder import PRFinder
+from cicada.git_helper import GitHelper
 
 
 class CicadaServer:
@@ -26,6 +27,16 @@ class CicadaServer:
         self.config = self._load_config(config_path)
         self.index = self._load_index()
         self.server = Server("cicada")
+
+        # Initialize git helper
+        repo_path = self.config.get("repository", {}).get("path", ".")
+        try:
+            self.git_helper = GitHelper(repo_path)
+        except Exception as e:
+            # If git initialization fails, set to None
+            # (e.g., not a git repository)
+            self.git_helper = None
+            print(f"Warning: Git helper not available: {e}", file=sys.stderr)
 
         # Register handlers
         self.server.list_tools()(self.list_tools)
@@ -239,6 +250,54 @@ class CicadaServer:
                     "required": ["file_path", "line_number"],
                 },
             ),
+            Tool(
+                name="get_file_history",
+                description=(
+                    "PREFERRED for git history: Get commit history for a file or function.\n\n"
+                    "## When to use\n"
+                    "- Understanding how a file has evolved over time\n"
+                    "- Finding who has worked on specific code\n"
+                    "- Tracking changes to a function across commits\n"
+                    "- Getting context about code evolution\n\n"
+                    "## How to use\n"
+                    "1. File history: file_path='lib/my_app/user.ex'\n"
+                    "2. Limit commits: max_commits=5\n"
+                    "3. Function-specific: file_path='lib/my_app/user.ex', function_name='create_user', line_number=42\n\n"
+                    "## Output includes\n"
+                    "- Commit SHA (short and full)\n"
+                    "- Author name and email\n"
+                    "- Commit date\n"
+                    "- Commit message\n"
+                    "- Relevance indicator (for function searches)\n\n"
+                    "Complements find_pr_for_line by providing full commit history rather than just PR attribution."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "file_path": {
+                            "type": "string",
+                            "description": "Path to the file (relative to repo root)",
+                        },
+                        "function_name": {
+                            "type": "string",
+                            "description": "Optional: function name to track changes for specific function",
+                        },
+                        "line_number": {
+                            "type": "integer",
+                            "description": "Optional: line number where function is defined (used with function_name)",
+                            "minimum": 1,
+                        },
+                        "max_commits": {
+                            "type": "integer",
+                            "description": "Maximum number of commits to return (default: 10)",
+                            "default": 10,
+                            "minimum": 1,
+                            "maximum": 50,
+                        },
+                    },
+                    "required": ["file_path"],
+                },
+            ),
         ]
 
     async def call_tool(self, name: str, arguments: dict) -> list[TextContent]:
@@ -303,6 +362,19 @@ class CicadaServer:
                 return [TextContent(type="text", text=error_msg)]
 
             return await self._find_pr_for_line(file_path, line_number, output_format)
+        elif name == "get_file_history":
+            file_path = arguments.get("file_path")
+            function_name = arguments.get("function_name")
+            line_number = arguments.get("line_number")
+            max_commits = arguments.get("max_commits", 10)
+
+            if not file_path:
+                error_msg = "'file_path' is required"
+                return [TextContent(type="text", text=error_msg)]
+
+            return await self._get_file_history(
+                file_path, function_name, line_number, max_commits
+            )
         else:
             raise ValueError(f"Unknown tool: {name}")
 
@@ -863,6 +935,73 @@ class CicadaServer:
 
         except Exception as e:
             error_msg = f"Error finding PR: {str(e)}"
+            return [TextContent(type="text", text=error_msg)]
+
+    async def _get_file_history(
+        self,
+        file_path: str,
+        function_name: str | None = None,
+        line_number: int | None = None,
+        max_commits: int = 10,
+    ) -> list[TextContent]:
+        """
+        Get git commit history for a file or function.
+
+        Args:
+            file_path: Path to the file
+            function_name: Optional function name to track
+            line_number: Optional line number where function is defined
+            max_commits: Maximum number of commits to return
+
+        Returns:
+            TextContent with formatted commit history
+        """
+        if not self.git_helper:
+            error_msg = "Git history is not available (repository may not be a git repo)"
+            return [TextContent(type="text", text=error_msg)]
+
+        try:
+            # If function name is provided, get function-specific history
+            if function_name and line_number:
+                commits = self.git_helper.get_function_history(
+                    file_path, function_name, line_number, max_commits
+                )
+                title = f"Git History for {function_name} in {file_path}"
+            else:
+                commits = self.git_helper.get_file_history(file_path, max_commits)
+                title = f"Git History for {file_path}"
+
+            if not commits:
+                result = f"No commit history found for {file_path}"
+                return [TextContent(type="text", text=result)]
+
+            # Format the results as markdown
+            lines = [f"# {title}\n"]
+            lines.append(f"Found {len(commits)} commit(s)\n")
+
+            for i, commit in enumerate(commits, 1):
+                lines.append(f"## {i}. {commit['summary']}")
+                lines.append(f"- **Commit:** `{commit['sha']}`")
+                lines.append(f"- **Author:** {commit['author']} ({commit['author_email']})")
+                lines.append(f"- **Date:** {commit['date']}")
+
+                # Add relevance indicator for function searches
+                if 'relevance' in commit:
+                    relevance_emoji = "🎯" if commit['relevance'] == 'mentioned' else "📝"
+                    relevance_text = "Function mentioned" if commit['relevance'] == 'mentioned' else "File changed"
+                    lines.append(f"- **Relevance:** {relevance_emoji} {relevance_text}")
+
+                # Add full commit message if it's different from summary
+                if commit['message'] != commit['summary']:
+                    lines.append(f"\n**Full message:**\n```\n{commit['message']}\n```")
+
+                lines.append("")  # Empty line between commits
+
+            result = "\n".join(lines)
+            return [TextContent(type="text", text=result)]
+
+        except Exception as e:
+            error_msg = f"Error getting file history: {str(e)}"
             return [TextContent(type="text", text=error_msg)]
 
     async def run(self):
