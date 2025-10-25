@@ -365,7 +365,8 @@ class PRFinder:
                     f"**PR:** [#{pr['number']}]({pr['url']}) - {pr['title']} (@{pr['author']}, {pr_status})"
                 )
             else:
-                output.append(f"**PR:** None")
+                note = result.get("note", "None")
+                output.append(f"**PR:** {note}")
 
             return "\n".join(output)
 
@@ -382,7 +383,8 @@ class PRFinder:
                     f"PR: #{pr['number']} - {pr['title']} (@{pr['author']}, {pr_status}) - {pr['url']}"
                 )
             else:
-                output.append(f"PR: None")
+                note = result.get("note", "None")
+                output.append(f"PR: {note}")
 
             return "\n".join(output)
 

@@ -1062,8 +1062,18 @@ class CicadaServer:
         try:
             # Get repo path from config
             repo_path = self.config.get("repository", {}).get("path", ".")
+            index_path = Path(repo_path) / ".cicada" / "pr_index.json"
 
-            # Initialize PRFinder with index enabled by default
+            # Check if index exists
+            if not index_path.exists():
+                error_msg = (
+                    "PR index not found. Please run:\n"
+                    "  cicada-index-pr\n\n"
+                    "This will create the PR index at .cicada/pr_index.json"
+                )
+                return [TextContent(type="text", text=error_msg)]
+
+            # Initialize PRFinder with index enabled
             pr_finder = PRFinder(
                 repo_path=repo_path,
                 use_index=True,
@@ -1071,8 +1081,31 @@ class CicadaServer:
                 verbose=False,
             )
 
-            # Find PR for the line
+            # Find PR for the line using index
             result = pr_finder.find_pr_for_line(file_path, line_number)
+
+            # If no PR found in index, check if it exists via network
+            if result.get("pr") is None and result.get("commit"):
+                # Try network lookup to see if PR actually exists
+                pr_finder_network = PRFinder(
+                    repo_path=repo_path,
+                    use_index=False,
+                    verbose=False,
+                )
+                network_result = pr_finder_network.find_pr_for_line(file_path, line_number)
+
+                if network_result.get("pr") is not None:
+                    # PR exists but not in index - suggest incremental update
+                    error_msg = (
+                        "PR index is incomplete. Please run:\n"
+                        "  cicada-index-pr --incremental\n\n"
+                        "This will update the index with recent PRs."
+                    )
+                    return [TextContent(type="text", text=error_msg)]
+                else:
+                    # No PR associated with this commit
+                    result["pr"] = None  # Ensure it's explicitly None
+                    result["note"] = "No PR associated with this line"
 
             # Format the result
             formatted_result = pr_finder.format_result(result, output_format)
