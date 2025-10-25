@@ -51,6 +51,17 @@ def install_cicada(target_dir, github_url=None):
     """
     target_path = Path(target_dir).resolve()
 
+    # Check if we're running from an installed package (pip/uvx)
+    # In this case, the cicada module is already available
+    try:
+        import cicada.mcp_server
+        # Get the site-packages or installation directory
+        package_path = Path(cicada.mcp_server.__file__).parent.parent
+        print(f"✓ Using installed cicada package")
+        return package_path
+    except ImportError:
+        pass
+
     # If we're already in the cicada directory, use it
     current_dir = Path.cwd()
     if (current_dir / "cicada" / "mcp_server.py").exists():
@@ -70,6 +81,7 @@ def install_cicada(target_dir, github_url=None):
         print(f"✓ Downloaded cicada to {target_path}")
     else:
         print("Error: cicada not found and no GitHub URL provided", file=sys.stderr)
+        print("Hint: Run with --github-url https://github.com/wende/cicada.git", file=sys.stderr)
         sys.exit(1)
 
     return target_path
