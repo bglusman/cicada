@@ -162,9 +162,10 @@ class PRIndexer:
                     files(first: 100) {{
                         nodes {{ path }}
                     }}
-                    reviews(first: 100) {{
+                    reviewThreads(first: 100) {{
                         nodes {{
-                            comments(first: 100) {{
+                            isResolved
+                            comments(first: 10) {{
                                 nodes {{
                                     id
                                     body
@@ -176,7 +177,6 @@ class PRIndexer:
                                     line
                                     originalLine
                                     diffHunk
-                                    isResolved
                                     commit {{ oid }}
                                 }}
                             }}
@@ -223,10 +223,12 @@ class PRIndexer:
                     for node in pr_data.get("files", {}).get("nodes", [])
                 ]
 
-                # Extract and flatten review comments
+                # Extract and flatten review thread comments
                 comments = []
-                for review in pr_data.get("reviews", {}).get("nodes", []):
-                    for comment_node in review.get("comments", {}).get("nodes", []):
+                for thread in pr_data.get("reviewThreads", {}).get("nodes", []):
+                    is_resolved = thread.get("isResolved", False)
+
+                    for comment_node in thread.get("comments", {}).get("nodes", []):
                         # Map comment line to current file line
                         mapped_line = None
                         if comment_node.get("path") and comment_node.get("commit"):
@@ -243,7 +245,7 @@ class PRIndexer:
                             "line": mapped_line,  # Current line (to be mapped)
                             "original_line": comment_node.get("originalLine"),
                             "diff_hunk": comment_node.get("diffHunk"),
-                            "resolved": comment_node.get("isResolved", False),
+                            "resolved": is_resolved,  # Thread-level resolution status
                             "commit_sha": comment_node.get("commit", {}).get("oid"),
                         })
 
