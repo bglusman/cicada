@@ -14,7 +14,13 @@ from typing import Optional, Dict, Any
 class PRFinder:
     """Find the PR that introduced a specific line of code."""
 
-    def __init__(self, repo_path: str = ".", use_index: bool = True, index_path: str = "data/pr_index.json", verbose: bool = False):
+    def __init__(
+        self,
+        repo_path: str = ".",
+        use_index: bool = True,
+        index_path: str = "data/pr_index.json",
+        verbose: bool = False,
+    ):
         """
         Initialize the PR finder.
 
@@ -39,7 +45,9 @@ class PRFinder:
                 print(f"Loaded PR index with {self.index['metadata']['total_prs']} PRs")
             elif not self.index and self.verbose:
                 print("Warning: PR index not found. Will fall back to network lookups.")
-                print(f"Run 'python cicada/pr_indexer.py --repo {repo_path}' to create an index.")
+                print(
+                    f"Run 'python cicada/pr_indexer.py --repo {repo_path}' to create an index."
+                )
 
         # Only validate gh CLI if we might need it (no index or index disabled)
         if not self.use_index or not self.index:
@@ -55,10 +63,7 @@ class PRFinder:
         """Validate that GitHub CLI is installed and available."""
         try:
             subprocess.run(
-                ["gh", "--version"],
-                capture_output=True,
-                check=True,
-                cwd=self.repo_path
+                ["gh", "--version"], capture_output=True, check=True, cwd=self.repo_path
             )
         except (subprocess.CalledProcessError, FileNotFoundError):
             raise RuntimeError(
@@ -84,7 +89,7 @@ class PRFinder:
             return None
 
         try:
-            with open(index_file, 'r') as f:
+            with open(index_file, "r") as f:
                 return json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             if self.verbose:
@@ -115,7 +120,9 @@ class PRFinder:
 
         return pr
 
-    def _run_git_blame(self, file_path: str, line_number: int) -> Optional[Dict[str, str]]:
+    def _run_git_blame(
+        self, file_path: str, line_number: int
+    ) -> Optional[Dict[str, str]]:
         """
         Run git blame to find the commit that introduced a specific line.
 
@@ -128,15 +135,22 @@ class PRFinder:
         """
         try:
             result = subprocess.run(
-                ["git", "blame", "-L", f"{line_number},{line_number}", "--porcelain", file_path],
+                [
+                    "git",
+                    "blame",
+                    "-L",
+                    f"{line_number},{line_number}",
+                    "--porcelain",
+                    file_path,
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
-                cwd=self.repo_path
+                cwd=self.repo_path,
             )
 
             # Parse porcelain output
-            lines = result.stdout.split('\n')
+            lines = result.stdout.split("\n")
             commit_sha = lines[0].split()[0]
 
             # Extract author information from porcelain output
@@ -144,15 +158,17 @@ class PRFinder:
             author_email = None
 
             for line in lines:
-                if line.startswith('author '):
+                if line.startswith("author "):
                     author_name = line[7:]  # Skip 'author '
-                elif line.startswith('author-mail '):
-                    author_email = line[12:].strip('<>')  # Skip 'author-mail ' and remove < >
+                elif line.startswith("author-mail "):
+                    author_email = line[12:].strip(
+                        "<>"
+                    )  # Skip 'author-mail ' and remove < >
 
             return {
                 "commit": commit_sha,
                 "author_name": author_name,
-                "author_email": author_email
+                "author_email": author_email,
             }
 
         except subprocess.CalledProcessError as e:
@@ -167,18 +183,26 @@ class PRFinder:
         """
         try:
             result = subprocess.run(
-                ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+                [
+                    "gh",
+                    "repo",
+                    "view",
+                    "--json",
+                    "nameWithOwner",
+                    "-q",
+                    ".nameWithOwner",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
-                cwd=self.repo_path
+                cwd=self.repo_path,
             )
 
             name_with_owner = result.stdout.strip()
             if not name_with_owner or name_with_owner == "null":
                 return None
 
-            owner, repo_name = name_with_owner.split('/')
+            owner, repo_name = name_with_owner.split("/")
             return owner, repo_name
 
         except subprocess.CalledProcessError:
@@ -209,7 +233,7 @@ class PRFinder:
                 capture_output=True,
                 text=True,
                 check=True,
-                cwd=self.repo_path
+                cwd=self.repo_path,
             )
 
             prs = json.loads(result.stdout)
@@ -271,7 +295,7 @@ class PRFinder:
                 "author_name": None,
                 "author_email": None,
                 "pr": None,
-                "error": "Could not find commit for this line"
+                "error": "Could not find commit for this line",
             }
 
         # Find PR for the commit - check index first, then network
@@ -291,7 +315,7 @@ class PRFinder:
             "commit": blame_info["commit"],
             "author_name": blame_info["author_name"],
             "author_email": blame_info["author_email"],
-            "pr": pr_info
+            "pr": pr_info,
         }
 
     def format_result(self, result: Dict[str, Any], output_format: str = "text") -> str:
@@ -338,8 +362,10 @@ class PRFinder:
             ]
 
             if pr:
-                pr_status = "merged" if pr['merged'] else pr['state']
-                output.append(f"**PR:** [#{pr['number']}]({pr['url']}) - {pr['title']} (@{pr['author']}, {pr_status})")
+                pr_status = "merged" if pr["merged"] else pr["state"]
+                output.append(
+                    f"**PR:** [#{pr['number']}]({pr['url']}) - {pr['title']} (@{pr['author']}, {pr_status})"
+                )
             else:
                 output.append(f"**PR:** None")
 
@@ -353,8 +379,10 @@ class PRFinder:
             ]
 
             if pr:
-                pr_status = "merged" if pr['merged'] else pr['state']
-                output.append(f"PR: #{pr['number']} - {pr['title']} (@{pr['author']}, {pr_status}) - {pr['url']}")
+                pr_status = "merged" if pr["merged"] else pr["state"]
+                output.append(
+                    f"PR: #{pr['number']} - {pr['title']} (@{pr['author']}, {pr_status}) - {pr['url']}"
+                )
             else:
                 output.append(f"PR: None")
 
@@ -373,23 +401,23 @@ def main():
     parser.add_argument(
         "--repo",
         default=".",
-        help="Path to git repository (default: current directory)"
+        help="Path to git repository (default: current directory)",
     )
     parser.add_argument(
         "--format",
         choices=["text", "json", "markdown"],
         default="text",
-        help="Output format (default: text)"
+        help="Output format (default: text)",
     )
     parser.add_argument(
         "--no-index",
         action="store_true",
-        help="Disable index lookup and use network instead (slower)"
+        help="Disable index lookup and use network instead (slower)",
     )
     parser.add_argument(
         "--index-path",
         default="data/pr_index.json",
-        help="Path to PR index file (default: data/pr_index.json)"
+        help="Path to PR index file (default: data/pr_index.json)",
     )
 
     args = parser.parse_args()
@@ -399,7 +427,7 @@ def main():
             repo_path=args.repo,
             use_index=not args.no_index,
             index_path=args.index_path,
-            verbose=True
+            verbose=True,
         )
         result = finder.find_pr_for_line(args.file, args.line)
         output = finder.format_result(result, args.format)

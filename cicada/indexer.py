@@ -24,12 +24,19 @@ class ElixirIndexer:
             fetch_pr_info: If True, fetch PR information for each module
         """
         self.parser = ElixirParser()
-        self.excluded_dirs = {'deps', '_build', 'node_modules', '.git', 'assets', 'priv'}
+        self.excluded_dirs = {
+            "deps",
+            "_build",
+            "node_modules",
+            ".git",
+            "assets",
+            "priv",
+        }
         self.fetch_pr_info = fetch_pr_info
         self.pr_finder = None
         self.pr_cache = {}  # Cache PR info by commit SHA to avoid redundant API calls
 
-    def index_repository(self, repo_path: str, output_path: str = 'data/index.json'):
+    def index_repository(self, repo_path: str, output_path: str = "data/index.json"):
         """
         Index an Elixir repository.
 
@@ -74,35 +81,37 @@ class ElixirIndexer:
 
                 if modules:
                     for module_data in modules:
-                        module_name = module_data['module']
-                        functions = module_data['functions']
+                        module_name = module_data["module"]
+                        functions = module_data["functions"]
 
                         # Calculate stats
-                        public_count = sum(1 for f in functions if f['type'] == 'def')
-                        private_count = sum(1 for f in functions if f['type'] == 'defp')
+                        public_count = sum(1 for f in functions if f["type"] == "def")
+                        private_count = sum(1 for f in functions if f["type"] == "defp")
 
                         # Get PR information if enabled
                         pr_info = None
                         if self.fetch_pr_info:
                             relative_path = str(file_path.relative_to(repo_path))
-                            pr_info = self._get_pr_info(relative_path, module_data['line'])
+                            pr_info = self._get_pr_info(
+                                relative_path, module_data["line"]
+                            )
 
                         # Store module info
                         module_info = {
-                            'file': str(file_path.relative_to(repo_path)),
-                            'line': module_data['line'],
-                            'moduledoc': module_data.get('moduledoc'),
-                            'functions': functions,
-                            'total_functions': len(functions),
-                            'public_functions': public_count,
-                            'private_functions': private_count,
-                            'aliases': module_data.get('aliases', {}),
-                            'calls': module_data.get('calls', [])
+                            "file": str(file_path.relative_to(repo_path)),
+                            "line": module_data["line"],
+                            "moduledoc": module_data.get("moduledoc"),
+                            "functions": functions,
+                            "total_functions": len(functions),
+                            "public_functions": public_count,
+                            "private_functions": private_count,
+                            "aliases": module_data.get("aliases", {}),
+                            "calls": module_data.get("calls", []),
                         }
 
                         # Add PR info if available
                         if pr_info:
-                            module_info['pr_info'] = pr_info
+                            module_info["pr_info"] = pr_info
 
                         all_modules[module_name] = module_info
 
@@ -120,20 +129,20 @@ class ElixirIndexer:
 
         # Build final index
         index = {
-            'modules': all_modules,
-            'metadata': {
-                'indexed_at': datetime.now().isoformat(),
-                'total_modules': len(all_modules),
-                'total_functions': total_functions,
-                'repo_path': str(repo_path)
-            }
+            "modules": all_modules,
+            "metadata": {
+                "indexed_at": datetime.now().isoformat(),
+                "total_modules": len(all_modules),
+                "total_functions": total_functions,
+                "repo_path": str(repo_path),
+            },
         }
 
         # Save to file
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(index, f, indent=2)
 
         print(f"\nIndexing complete!")
@@ -161,7 +170,7 @@ class ElixirIndexer:
             result = self.pr_finder.find_pr_for_line(file_path, line_number)
 
             # Extract commit SHA for caching
-            commit_sha = result.get('commit')
+            commit_sha = result.get("commit")
 
             if commit_sha:
                 # Check cache first
@@ -170,10 +179,10 @@ class ElixirIndexer:
 
                 # Cache the result
                 pr_info = {
-                    'commit': commit_sha,
-                    'author_name': result.get('author_name'),
-                    'author_email': result.get('author_email'),
-                    'pr': result.get('pr')
+                    "commit": commit_sha,
+                    "author_name": result.get("author_name"),
+                    "author_email": result.get("author_email"),
+                    "pr": result.get("pr"),
                 }
 
                 self.pr_cache[commit_sha] = pr_info
@@ -183,7 +192,9 @@ class ElixirIndexer:
 
         except Exception as e:
             # Silently fail on PR lookup errors to avoid breaking indexing
-            print(f"  Warning: Could not fetch PR info for {file_path}:{line_number}: {e}")
+            print(
+                f"  Warning: Could not fetch PR info for {file_path}:{line_number}: {e}"
+            )
             return None
 
     def _find_elixir_files(self, repo_path: Path) -> list:
@@ -196,7 +207,7 @@ class ElixirIndexer:
 
             # Find .ex and .exs files
             for file in files:
-                if file.endswith(('.ex', '.exs')):
+                if file.endswith((".ex", ".exs")):
                     file_path = Path(root) / file
                     elixir_files.append(file_path)
 
@@ -206,23 +217,23 @@ class ElixirIndexer:
 def main():
     """Main entry point for the indexer CLI."""
     parser = argparse.ArgumentParser(
-        description='Index current Elixir repository to extract modules and functions'
+        description="Index current Elixir repository to extract modules and functions"
     )
     parser.add_argument(
-        'repo',
-        nargs='?',
-        default='.',
-        help='Path to the Elixir repository to index (default: current directory)'
+        "repo",
+        nargs="?",
+        default=".",
+        help="Path to the Elixir repository to index (default: current directory)",
     )
     parser.add_argument(
-        '--output',
-        default='.cicada/index.json',
-        help='Output path for the index file (default: .cicada/index.json)'
+        "--output",
+        default=".cicada/index.json",
+        help="Output path for the index file (default: .cicada/index.json)",
     )
     parser.add_argument(
-        '--pr-info',
-        action='store_true',
-        help='Fetch PR information for each module (requires GitHub CLI and may be slow)'
+        "--pr-info",
+        action="store_true",
+        help="Fetch PR information for each module (requires GitHub CLI and may be slow)",
     )
 
     args = parser.parse_args()
@@ -231,5 +242,5 @@ def main():
     indexer.index_repository(args.repo, args.output)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -17,12 +17,7 @@ def run_command(cmd, cwd=None, check=True):
     """Run a shell command and return the result."""
     try:
         result = subprocess.run(
-            cmd,
-            shell=True,
-            check=check,
-            cwd=cwd,
-            capture_output=True,
-            text=True
+            cmd, shell=True, check=check, cwd=cwd, capture_output=True, text=True
         )
         return result
     except subprocess.CalledProcessError as e:
@@ -35,7 +30,10 @@ def check_python():
     """Check if Python 3.10+ is available."""
     version = sys.version_info
     if version.major < 3 or (version.major == 3 and version.minor < 10):
-        print(f"Error: Python 3.10+ required. Current: {version.major}.{version.minor}", file=sys.stderr)
+        print(
+            f"Error: Python 3.10+ required. Current: {version.major}.{version.minor}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     print(f"✓ Python {version.major}.{version.minor} detected")
 
@@ -191,15 +189,13 @@ def create_mcp_config(repo_path, cicada_dir, python_bin):
                 "command": str(python_bin),
                 "args": [str(cicada_dir / "cicada" / "mcp_server.py")],
                 "cwd": str(cicada_dir),
-                "env": {
-                    "CICADA_REPO_PATH": str(repo_path)
-                }
+                "env": {"CICADA_REPO_PATH": str(repo_path)},
             }
         }
     }
 
     # Write config file
-    with open(mcp_config_path, 'w') as f:
+    with open(mcp_config_path, "w") as f:
         json.dump(config, f, indent=2)
 
     print(f"✓ MCP configuration created at {mcp_config_path}")
@@ -217,7 +213,7 @@ storage:
   index_path: {index_path}
 """
 
-    with open(config_path, 'w') as f:
+    with open(config_path, "w") as f:
         f.write(config_content)
 
     print(f"✓ Config file created at {config_path}")
@@ -226,41 +222,41 @@ storage:
 def main():
     """Main entry point for the setup script."""
     parser = argparse.ArgumentParser(
-        description='One-command setup for Cicada MCP server',
-        epilog='Example: python setup.py --repo /path/to/elixir/project'
+        description="One-command setup for Cicada MCP server",
+        epilog="Example: python setup.py --repo /path/to/elixir/project",
     )
     parser.add_argument(
-        '--repo',
-        default='.',
-        help='Path to the Elixir repository to index (default: current directory)'
+        "--repo",
+        default=".",
+        help="Path to the Elixir repository to index (default: current directory)",
     )
     parser.add_argument(
-        '--cicada-dir',
-        help='Directory where cicada is or will be installed (default: ~/.cicada)'
+        "--cicada-dir",
+        help="Directory where cicada is or will be installed (default: ~/.cicada)",
     )
     parser.add_argument(
-        '--github-url',
-        help='GitHub URL to clone cicada from (if not already installed)'
+        "--github-url",
+        help="GitHub URL to clone cicada from (if not already installed)",
     )
     parser.add_argument(
-        '--pr-info',
-        action='store_true',
-        help='Fetch PR information during indexing (requires GitHub CLI and may be slow)'
+        "--pr-info",
+        action="store_true",
+        help="Fetch PR information during indexing (requires GitHub CLI and may be slow)",
     )
     parser.add_argument(
-        '--skip-install',
-        action='store_true',
-        help='Skip installing dependencies (use if already installed)'
+        "--skip-install",
+        action="store_true",
+        help="Skip installing dependencies (use if already installed)",
     )
     parser.add_argument(
-        '--use-uv',
-        action='store_true',
-        help='Force use of uv for dependency installation (faster)'
+        "--use-uv",
+        action="store_true",
+        help="Force use of uv for dependency installation (faster)",
     )
     parser.add_argument(
-        '--use-pip',
-        action='store_true',
-        help='Force use of pip for dependency installation (traditional)'
+        "--use-pip",
+        action="store_true",
+        help="Force use of pip for dependency installation (traditional)",
     )
 
     args = parser.parse_args()
@@ -332,5 +328,5 @@ def main():
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -39,12 +39,12 @@ class CicadaServer:
         if not config_file.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             return yaml.safe_load(f)
 
     def _load_index(self) -> dict:
         """Load the index from JSON file."""
-        index_path = Path(self.config['storage']['index_path'])
+        index_path = Path(self.config["storage"]["index_path"])
 
         if not index_path.exists():
             raise FileNotFoundError(
@@ -52,7 +52,7 @@ class CicadaServer:
                 f"Run 'python indexer.py --repo <path>' to create an index first."
             )
 
-        with open(index_path, 'r') as f:
+        with open(index_path, "r") as f:
             return json.load(f)
 
     async def list_tools(self) -> list[Tool]:
@@ -72,21 +72,21 @@ class CicadaServer:
                     "properties": {
                         "module_name": {
                             "type": "string",
-                            "description": "Full module name to search (e.g., 'MyApp.User'). Provide either this or file_path."
+                            "description": "Full module name to search (e.g., 'MyApp.User'). Provide either this or file_path.",
                         },
                         "file_path": {
                             "type": "string",
-                            "description": "Path to an Elixir file (e.g., 'lib/my_app/user.ex'). Provide either this or module_name."
+                            "description": "Path to an Elixir file (e.g., 'lib/my_app/user.ex'). Provide either this or module_name.",
                         },
                         "format": {
                             "type": "string",
                             "description": "Output format: 'markdown' (default) or 'json'",
                             "enum": ["markdown", "json"],
-                            "default": "markdown"
-                        }
+                            "default": "markdown",
+                        },
                     },
-                    "required": []
-                }
+                    "required": [],
+                },
             ),
             Tool(
                 name="search_function",
@@ -102,34 +102,34 @@ class CicadaServer:
                     "properties": {
                         "function_name": {
                             "type": "string",
-                            "description": "Function name to search. Formats: 'create_user', 'create_user/2' (all modules), or 'MyApp.User.create_user', 'MyApp.User.create_user/2' (specific module)"
+                            "description": "Function name to search. Formats: 'create_user', 'create_user/2' (all modules), or 'MyApp.User.create_user', 'MyApp.User.create_user/2' (specific module)",
                         },
                         "format": {
                             "type": "string",
                             "description": "Output format: 'markdown' (default) or 'json'",
                             "enum": ["markdown", "json"],
-                            "default": "markdown"
+                            "default": "markdown",
                         },
                         "include_usage_examples": {
                             "type": "boolean",
                             "description": "Include actual code lines showing how the function is called (default: false)",
-                            "default": False
+                            "default": False,
                         },
                         "max_examples": {
                             "type": "integer",
                             "description": "Maximum number of usage examples to show per function (default: 5)",
                             "default": 5,
                             "minimum": 1,
-                            "maximum": 20
+                            "maximum": 20,
                         },
                         "test_files_only": {
                             "type": "boolean",
                             "description": "Only show calls from test files (files with 'test' in their path) (default: false)",
-                            "default": False
-                        }
+                            "default": False,
+                        },
                     },
-                    "required": ["function_name"]
-                }
+                    "required": ["function_name"],
+                },
             ),
             Tool(
                 name="find_pr_for_line",
@@ -144,22 +144,22 @@ class CicadaServer:
                     "properties": {
                         "file_path": {
                             "type": "string",
-                            "description": "Path to the file (relative to repo root or absolute)"
+                            "description": "Path to the file (relative to repo root or absolute)",
                         },
                         "line_number": {
                             "type": "integer",
                             "description": "Line number (1-indexed)",
-                            "minimum": 1
+                            "minimum": 1,
                         },
                         "format": {
                             "type": "string",
                             "description": "Output format: 'text' (default), 'json', or 'markdown'",
                             "enum": ["text", "json", "markdown"],
-                            "default": "text"
-                        }
+                            "default": "text",
+                        },
                     },
-                    "required": ["file_path", "line_number"]
-                }
+                    "required": ["file_path", "line_number"],
+                },
             ),
             Tool(
                 name="index_repository",
@@ -175,21 +175,21 @@ class CicadaServer:
                         "repo_path": {
                             "type": "string",
                             "description": "Path to the Elixir repository to index (default: current directory)",
-                            "default": "."
+                            "default": ".",
                         },
                         "output_path": {
                             "type": "string",
                             "description": "Output path for the index file (default: .cicada/index.json)",
-                            "default": ".cicada/index.json"
+                            "default": ".cicada/index.json",
                         },
                         "fetch_pr_info": {
                             "type": "boolean",
                             "description": "Fetch PR information for each module (requires GitHub CLI and may be slow)",
-                            "default": False
-                        }
+                            "default": False,
+                        },
                     },
-                    "required": []
-                }
+                    "required": [],
+                },
             ),
             Tool(
                 name="index_prs",
@@ -205,22 +205,22 @@ class CicadaServer:
                         "repo_path": {
                             "type": "string",
                             "description": "Path to the git repository (default: current directory)",
-                            "default": "."
+                            "default": ".",
                         },
                         "output_path": {
                             "type": "string",
                             "description": "Output path for the PR index file (default: data/pr_index.json)",
-                            "default": "data/pr_index.json"
+                            "default": "data/pr_index.json",
                         },
                         "incremental": {
                             "type": "boolean",
                             "description": "Only fetch new PRs since last index (faster)",
-                            "default": False
-                        }
+                            "default": False,
+                        },
                     },
-                    "required": []
-                }
-            )
+                    "required": [],
+                },
+            ),
         ]
 
     async def call_tool(self, name: str, arguments: dict) -> list[TextContent]:
@@ -259,7 +259,7 @@ class CicadaServer:
                 output_format,
                 include_usage_examples,
                 max_examples,
-                test_files_only
+                test_files_only,
             )
         elif name == "find_pr_for_line":
             file_path = arguments.get("file_path")
@@ -293,11 +293,11 @@ class CicadaServer:
     def _resolve_file_to_module(self, file_path: str) -> str | None:
         """Resolve a file path to a module name by searching the index."""
         # Normalize the file path (remove leading ./ and trailing whitespace)
-        normalized_path = file_path.strip().lstrip('./')
+        normalized_path = file_path.strip().lstrip("./")
 
         # Search through all modules to find one matching this file path
-        for module_name, module_data in self.index['modules'].items():
-            module_file = module_data['file']
+        for module_name, module_data in self.index["modules"].items():
+            module_file = module_data["file"]
 
             # Check for exact match
             if module_file == normalized_path:
@@ -315,11 +315,13 @@ class CicadaServer:
 
         return None
 
-    async def _search_module(self, module_name: str, output_format: str = "markdown") -> list[TextContent]:
+    async def _search_module(
+        self, module_name: str, output_format: str = "markdown"
+    ) -> list[TextContent]:
         """Search for a module and return its information."""
         # Exact match lookup
-        if module_name in self.index['modules']:
-            data = self.index['modules'][module_name]
+        if module_name in self.index["modules"]:
+            data = self.index["modules"][module_name]
 
             if output_format == "json":
                 result = ModuleFormatter.format_module_json(module_name, data)
@@ -329,12 +331,14 @@ class CicadaServer:
             return [TextContent(type="text", text=result)]
 
         # Module not found
-        total_modules = self.index['metadata']['total_modules']
+        total_modules = self.index["metadata"]["total_modules"]
 
         if output_format == "json":
             error_result = ModuleFormatter.format_error_json(module_name, total_modules)
         else:
-            error_result = ModuleFormatter.format_error_markdown(module_name, total_modules)
+            error_result = ModuleFormatter.format_error_markdown(
+                module_name, total_modules
+            )
 
         return [TextContent(type="text", text=error_result)]
 
@@ -344,7 +348,7 @@ class CicadaServer:
         output_format: str = "markdown",
         include_usage_examples: bool = False,
         max_examples: int = 5,
-        test_files_only: bool = False
+        test_files_only: bool = False,
     ) -> list[TextContent]:
         """Search for a function across all modules and return matches with call sites."""
         # Parse the function name - supports multiple formats:
@@ -355,16 +359,16 @@ class CicadaServer:
         target_arity = None
 
         # Check for Module.function format
-        if '.' in function_name:
+        if "." in function_name:
             # Split on last dot to separate module from function
-            parts = function_name.rsplit('.', 1)
+            parts = function_name.rsplit(".", 1)
             if len(parts) == 2:
                 target_module = parts[0]
                 target_name = parts[1]
 
         # Check for arity
-        if '/' in target_name:
-            parts = target_name.split('/')
+        if "/" in target_name:
+            parts = target_name.split("/")
             target_name = parts[0]
             try:
                 target_arity = int(parts[1])
@@ -373,20 +377,20 @@ class CicadaServer:
 
         # Search across all modules for function definitions
         results = []
-        for module_name, module_data in self.index['modules'].items():
+        for module_name, module_data in self.index["modules"].items():
             # If target_module is specified, only search in that module
             if target_module and module_name != target_module:
                 continue
 
-            for func in module_data['functions']:
+            for func in module_data["functions"]:
                 # Match by name and optionally arity
-                if func['name'] == target_name:
-                    if target_arity is None or func['arity'] == target_arity:
+                if func["name"] == target_name:
+                    if target_arity is None or func["arity"] == target_arity:
                         # Find call sites for this function
                         call_sites = self._find_call_sites(
                             target_module=module_name,
                             target_function=target_name,
-                            target_arity=func['arity']
+                            target_arity=func["arity"],
                         )
 
                         # Filter for test files only if requested
@@ -396,7 +400,9 @@ class CicadaServer:
                         # Optionally include usage examples (actual code lines)
                         if include_usage_examples and call_sites:
                             # Consolidate call sites by calling module (one example per module)
-                            consolidated_sites = self._consolidate_call_sites_by_module(call_sites)
+                            consolidated_sites = self._consolidate_call_sites_by_module(
+                                call_sites
+                            )
                             # Limit the number of examples
                             limited_call_sites = consolidated_sites[:max_examples]
                             # Extract code lines for each call site
@@ -404,18 +410,28 @@ class CicadaServer:
                         else:
                             limited_call_sites = call_sites
 
-                        results.append({
-                            'module': module_name,
-                            'function': func,
-                            'file': module_data['file'],
-                            'call_sites': limited_call_sites if include_usage_examples else call_sites
-                        })
+                        results.append(
+                            {
+                                "module": module_name,
+                                "function": func,
+                                "file": module_data["file"],
+                                "call_sites": (
+                                    limited_call_sites
+                                    if include_usage_examples
+                                    else call_sites
+                                ),
+                            }
+                        )
 
         # Format results
         if output_format == "json":
-            result = ModuleFormatter.format_function_results_json(function_name, results)
+            result = ModuleFormatter.format_function_results_json(
+                function_name, results
+            )
         else:
-            result = ModuleFormatter.format_function_results_markdown(function_name, results)
+            result = ModuleFormatter.format_function_results_markdown(
+                function_name, results
+            )
 
         return [TextContent(type="text", text=result)]
 
@@ -430,10 +446,10 @@ class CicadaServer:
         Extracts complete function calls from opening '(' to closing ')'.
         """
         # Get the repo path from the index metadata (fallback to config if not available)
-        repo_path_str = self.index.get('metadata', {}).get('repo_path')
+        repo_path_str = self.index.get("metadata", {}).get("repo_path")
         if not repo_path_str:
             # Fallback to config if available
-            repo_path_str = self.config.get('repository', {}).get('path')
+            repo_path_str = self.config.get("repository", {}).get("path")
 
         if not repo_path_str:
             # Can't add examples without repo path
@@ -442,18 +458,18 @@ class CicadaServer:
         repo_path = Path(repo_path_str)
 
         for site in call_sites:
-            file_path = repo_path / site['file']
-            line_number = site['line']
+            file_path = repo_path / site["file"]
+            line_number = site["line"]
 
             try:
                 # Read all lines from the file
-                with open(file_path, 'r') as f:
+                with open(file_path, "r") as f:
                     lines = f.readlines()
 
                 # Extract complete function call
                 code_lines = self._extract_complete_call(lines, line_number)
                 if code_lines:
-                    site['code_line'] = code_lines
+                    site["code_line"] = code_lines
             except (FileNotFoundError, IOError, IndexError) as e:
                 # If we can't read the file/line, just skip adding the code example
                 pass
@@ -482,30 +498,32 @@ class CicadaServer:
 
         # Read lines starting from the call line
         for i in range(start_idx, len(lines)):
-            line = lines[i].rstrip('\n')
+            line = lines[i].rstrip("\n")
             collected_lines.append(line)
 
             # Count parentheses to find the complete call
             for char in line:
-                if char == '(':
+                if char == "(":
                     paren_count += 1
                     found_opening = True
-                elif char == ')':
+                elif char == ")":
                     paren_count -= 1
 
             # If we found an opening paren and count is back to 0, we have the complete call
             if found_opening and paren_count == 0:
                 # Join the lines and return
-                return '\n'.join(collected_lines)
+                return "\n".join(collected_lines)
 
             # Safety limit: don't read more than 20 lines for a single call
             if len(collected_lines) >= 20:
                 break
 
         # If we couldn't find a complete call, return what we have
-        return '\n'.join(collected_lines) if collected_lines else None
+        return "\n".join(collected_lines) if collected_lines else None
 
-    def _find_call_sites(self, target_module: str, target_function: str, target_arity: int) -> list:
+    def _find_call_sites(
+        self, target_module: str, target_function: str, target_arity: int
+    ) -> list:
         """
         Find all locations where a function is called.
 
@@ -521,45 +539,52 @@ class CicadaServer:
 
         # Find the function definition line to filter out @spec/@doc
         function_def_line = None
-        if target_module in self.index['modules']:
-            for func in self.index['modules'][target_module]['functions']:
-                if func['name'] == target_function and func['arity'] == target_arity:
-                    function_def_line = func['line']
+        if target_module in self.index["modules"]:
+            for func in self.index["modules"][target_module]["functions"]:
+                if func["name"] == target_function and func["arity"] == target_arity:
+                    function_def_line = func["line"]
                     break
 
-        for caller_module, module_data in self.index['modules'].items():
+        for caller_module, module_data in self.index["modules"].items():
             # Get aliases for this module to resolve calls
-            aliases = module_data.get('aliases', {})
+            aliases = module_data.get("aliases", {})
 
             # Check all calls in this module
-            for call in module_data.get('calls', []):
-                if call['function'] != target_function:
+            for call in module_data.get("calls", []):
+                if call["function"] != target_function:
                     continue
 
-                if call['arity'] != target_arity:
+                if call["arity"] != target_arity:
                     continue
 
                 # Resolve the call's module name using aliases
-                call_module = call.get('module')
+                call_module = call.get("module")
 
                 if call_module is None:
                     # Local call - check if it's in the same module
                     if caller_module == target_module:
                         # Filter out calls that are part of the function definition
                         # (@spec, @doc appear 1-5 lines before the def)
-                        if function_def_line and abs(call['line'] - function_def_line) <= 5:
+                        if (
+                            function_def_line
+                            and abs(call["line"] - function_def_line) <= 5
+                        ):
                             continue
 
                         # Find the calling function
-                        calling_function = self._find_function_at_line(caller_module, call['line'])
+                        calling_function = self._find_function_at_line(
+                            caller_module, call["line"]
+                        )
 
-                        call_sites.append({
-                            'calling_module': caller_module,
-                            'calling_function': calling_function,
-                            'file': module_data['file'],
-                            'line': call['line'],
-                            'call_type': 'local'
-                        })
+                        call_sites.append(
+                            {
+                                "calling_module": caller_module,
+                                "calling_function": calling_function,
+                                "file": module_data["file"],
+                                "line": call["line"],
+                                "call_type": "local",
+                            }
+                        )
                 else:
                     # Qualified call - resolve the module name
                     resolved_module = aliases.get(call_module, call_module)
@@ -567,16 +592,24 @@ class CicadaServer:
                     # Check if this resolves to our target module
                     if resolved_module == target_module:
                         # Find the calling function
-                        calling_function = self._find_function_at_line(caller_module, call['line'])
+                        calling_function = self._find_function_at_line(
+                            caller_module, call["line"]
+                        )
 
-                        call_sites.append({
-                            'calling_module': caller_module,
-                            'calling_function': calling_function,
-                            'file': module_data['file'],
-                            'line': call['line'],
-                            'call_type': 'qualified',
-                            'alias_used': call_module if call_module != resolved_module else None
-                        })
+                        call_sites.append(
+                            {
+                                "calling_module": caller_module,
+                                "calling_function": calling_function,
+                                "file": module_data["file"],
+                                "line": call["line"],
+                                "call_type": "qualified",
+                                "alias_used": (
+                                    call_module
+                                    if call_module != resolved_module
+                                    else None
+                                ),
+                            }
+                        )
 
         return call_sites
 
@@ -591,23 +624,23 @@ class CicadaServer:
         Returns:
             Dictionary with 'name' and 'arity', or None if not found
         """
-        if module_name not in self.index['modules']:
+        if module_name not in self.index["modules"]:
             return None
 
-        module_data = self.index['modules'][module_name]
+        module_data = self.index["modules"][module_name]
 
         # Find the function whose definition line is closest before the target line
         best_match = None
-        for func in module_data['functions']:
-            func_line = func['line']
+        for func in module_data["functions"]:
+            func_line = func["line"]
             # The function must be defined before or at the line
             if func_line <= line:
                 # Keep the closest one
-                if best_match is None or func_line > best_match['line']:
+                if best_match is None or func_line > best_match["line"]:
                     best_match = {
-                        'name': func['name'],
-                        'arity': func['arity'],
-                        'line': func_line
+                        "name": func["name"],
+                        "arity": func["arity"],
+                        "line": func_line,
                     }
 
         return best_match
@@ -627,7 +660,7 @@ class CicadaServer:
         consolidated = []
 
         for site in call_sites:
-            module = site['calling_module']
+            module = site["calling_module"]
 
             # If we haven't seen this module yet, add it
             if module not in seen_modules:
@@ -648,12 +681,11 @@ class CicadaServer:
         Returns:
             Filtered list containing only call sites from test files
         """
-        return [
-            site for site in call_sites
-            if 'test' in site['file'].lower()
-        ]
+        return [site for site in call_sites if "test" in site["file"].lower()]
 
-    async def _find_pr_for_line(self, file_path: str, line_number: int, output_format: str = "text") -> list[TextContent]:
+    async def _find_pr_for_line(
+        self, file_path: str, line_number: int, output_format: str = "text"
+    ) -> list[TextContent]:
         """
         Find the PR that introduced a specific line of code.
 
@@ -667,14 +699,14 @@ class CicadaServer:
         """
         try:
             # Get repo path from config
-            repo_path = self.config.get('repository', {}).get('path', '.')
+            repo_path = self.config.get("repository", {}).get("path", ".")
 
             # Initialize PRFinder with index enabled by default
             pr_finder = PRFinder(
                 repo_path=repo_path,
                 use_index=True,
                 index_path="data/pr_index.json",
-                verbose=False
+                verbose=False,
             )
 
             # Find PR for the line
@@ -689,7 +721,9 @@ class CicadaServer:
             error_msg = f"Error finding PR: {str(e)}"
             return [TextContent(type="text", text=error_msg)]
 
-    async def _index_repository(self, repo_path: str, output_path: str, fetch_pr_info: bool) -> list[TextContent]:
+    async def _index_repository(
+        self, repo_path: str, output_path: str, fetch_pr_info: bool
+    ) -> list[TextContent]:
         """
         Index an Elixir repository.
 
@@ -718,7 +752,9 @@ class CicadaServer:
             error_msg = f"Error indexing repository: {str(e)}"
             return [TextContent(type="text", text=error_msg)]
 
-    async def _index_prs(self, repo_path: str, output_path: str, incremental: bool) -> list[TextContent]:
+    async def _index_prs(
+        self, repo_path: str, output_path: str, incremental: bool
+    ) -> list[TextContent]:
         """
         Index pull requests in a GitHub repository.
 
@@ -732,7 +768,9 @@ class CicadaServer:
         """
         try:
             pr_indexer = PRIndexer(repo_path=repo_path)
-            index = pr_indexer.index_repository(output_path=output_path, incremental=incremental)
+            index = pr_indexer.index_repository(
+                output_path=output_path, incremental=incremental
+            )
 
             result_msg = (
                 f"PR index created successfully!\n\n"
@@ -752,9 +790,7 @@ class CicadaServer:
         """Run the MCP server."""
         async with stdio_server() as (read_stream, write_stream):
             await self.server.run(
-                read_stream,
-                write_stream,
-                self.server.create_initialization_options()
+                read_stream, write_stream, self.server.create_initialization_options()
             )
 
 
@@ -770,4 +806,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

@@ -70,14 +70,14 @@ Using [uv](https://github.com/astral-sh/uv):
 ```bash
 # Install and configure in one command
 cd /path/to/your/elixir/project
-uvx --from git+https://github.com/YOUR_USERNAME/cicada.git cicada-setup --repo .
+uvx --from git+https://github.com/wende/cicada.git cicada-setup --repo .
 ```
 
 Or install as a persistent tool:
 
 ```bash
 # Install once
-uv tool install git+https://github.com/YOUR_USERNAME/cicada.git
+uv tool install git+https://github.com/wende/cicada.git
 
 # Use in any project
 cd /path/to/elixir/project
@@ -99,7 +99,7 @@ For full control:
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/cicada.git
+git clone https://github.com/wende/cicada.git
 cd cicada
 
 # Install dependencies
@@ -425,7 +425,7 @@ These features may be added in future versions.
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/cicada.git
+git clone https://github.com/wende/cicada.git
 cd cicada
 
 # Create a virtual environment
@@ -462,7 +462,7 @@ mypy cicada
 
 When reporting bugs or requesting features:
 
-1. Check existing [Issues](https://github.com/YOUR_USERNAME/cicada/issues)
+1. Check existing [Issues](https://github.com/wende/cicada/issues)
 2. If not found, create a new issue with:
    - Clear description
    - Steps to reproduce (for bugs)

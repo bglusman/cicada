@@ -27,30 +27,34 @@ class ModuleFormatter:
         Returns:
             Formatted signature like "func_name(arg1: type1, arg2: type2)" or "func_name/arity"
         """
-        func_name = func['name']
+        func_name = func["name"]
 
         # If we have args_with_types, use that
-        if 'args_with_types' in func and func['args_with_types']:
-            args_str = ", ".join([
-                f"{arg['name']}: {arg['type']}" if arg['type'] else arg['name']
-                for arg in func['args_with_types']
-            ])
+        if "args_with_types" in func and func["args_with_types"]:
+            args_str = ", ".join(
+                [
+                    f"{arg['name']}: {arg['type']}" if arg["type"] else arg["name"]
+                    for arg in func["args_with_types"]
+                ]
+            )
             return f"{func_name}({args_str})"
 
         # Otherwise, fallback to args without types
-        elif 'args' in func and func['args']:
-            args_str = ", ".join(func['args'])
+        elif "args" in func and func["args"]:
+            args_str = ", ".join(func["args"])
             return f"{func_name}({args_str})"
 
         # No args, just show function name with empty parens or /0
-        elif func['arity'] == 0:
+        elif func["arity"] == 0:
             return f"{func_name}()"
 
         # Fallback to name/arity
         return f"{func_name}/{func['arity']}"
 
     @staticmethod
-    def _group_functions_by_name_arity(funcs: list[Dict[str, Any]]) -> Dict[tuple, list[Dict[str, Any]]]:
+    def _group_functions_by_name_arity(
+        funcs: list[Dict[str, Any]],
+    ) -> Dict[tuple, list[Dict[str, Any]]]:
         """
         Group functions by their name and arity.
 
@@ -62,7 +66,7 @@ class ModuleFormatter:
         """
         grouped = {}
         for func in funcs:
-            key = (func['name'], func['arity'])
+            key = (func["name"], func["arity"])
             if key not in grouped:
                 grouped[key] = []
             grouped[key].append(func)
@@ -81,8 +85,8 @@ class ModuleFormatter:
             Formatted Markdown string
         """
         # Group functions by type (def = public, defp = private)
-        public_funcs = [f for f in data['functions'] if f['type'] == 'def']
-        private_funcs = [f for f in data['functions'] if f['type'] == 'defp']
+        public_funcs = [f for f in data["functions"] if f["type"] == "def"]
+        private_funcs = [f for f in data["functions"] if f["type"] == "defp"]
 
         # Group by name/arity to deduplicate function clauses
         public_grouped = ModuleFormatter._group_functions_by_name_arity(public_funcs)
@@ -96,16 +100,16 @@ class ModuleFormatter:
         lines = [
             module_name,
             "",
-            f"{data['file']}:{data['line']} • {public_count} public • {private_count} private"
+            f"{data['file']}:{data['line']} • {public_count} public • {private_count} private",
         ]
 
         # Add moduledoc if present (first paragraph only for brevity)
-        if data.get('moduledoc'):
-            doc = data['moduledoc'].strip()
+        if data.get("moduledoc"):
+            doc = data["moduledoc"].strip()
             # Get first paragraph (up to double newline or first 200 chars)
-            first_para = doc.split('\n\n')[0].strip()
+            first_para = doc.split("\n\n")[0].strip()
             if len(first_para) > 200:
-                first_para = first_para[:200] + '...'
+                first_para = first_para[:200] + "..."
             lines.extend(["", first_para])
 
         if public_grouped:
@@ -124,7 +128,7 @@ class ModuleFormatter:
                 func_sig = ModuleFormatter._format_function_signature(func)
                 lines.append(f"{func_sig} — :{func['line']}")
 
-        if not data['functions']:
+        if not data["functions"]:
             lines.extend(["", "*No functions found*"])
 
         return "\n".join(lines)
@@ -142,15 +146,15 @@ class ModuleFormatter:
             Formatted JSON string
         """
         # Group functions by name/arity to deduplicate function clauses
-        all_funcs = data['functions']
+        all_funcs = data["functions"]
         grouped = ModuleFormatter._group_functions_by_name_arity(all_funcs)
 
         # Compact function format - one entry per unique name/arity
         functions = [
             {
                 "signature": ModuleFormatter._format_function_signature(clauses[0]),
-                "line": clauses[0]['line'],
-                "type": clauses[0]['type']
+                "line": clauses[0]["line"],
+                "type": clauses[0]["type"],
             }
             for (name, arity), clauses in sorted(grouped.items())
         ]
@@ -158,12 +162,12 @@ class ModuleFormatter:
         result = {
             "module": module_name,
             "location": f"{data['file']}:{data['line']}",
-            "moduledoc": data.get('moduledoc'),
+            "moduledoc": data.get("moduledoc"),
             "counts": {
-                "public": data['public_functions'],
-                "private": data['private_functions']
+                "public": data["public_functions"],
+                "private": data["private_functions"],
             },
-            "functions": functions
+            "functions": functions,
         }
         return json.dumps(result, indent=2)
 
@@ -212,12 +216,14 @@ Module names are case-sensitive and must match exactly (e.g., `MyApp.User`, not 
             "error": "Module not found",
             "query": module_name,
             "hint": "Use the exact module name as it appears in the code",
-            "total_modules_available": total_modules
+            "total_modules_available": total_modules,
         }
         return json.dumps(error_result, indent=2)
 
     @staticmethod
-    def format_function_results_markdown(function_name: str, results: list[Dict[str, Any]]) -> str:
+    def format_function_results_markdown(
+        function_name: str, results: list[Dict[str, Any]]
+    ) -> str:
         """
         Format function search results as Markdown.
 
@@ -244,25 +250,38 @@ No functions matching `{function_name}` were found in the index.
 
         # For single results (e.g., MFA search), use simpler header
         if len(results) == 1:
-            lines = [f"⎿ # `{results[0]['module']}.{results[0]['function']['name']}/{results[0]['function']['arity']}`"]
+            lines = [
+                f"⎿ # `{results[0]['module']}.{results[0]['function']['name']}/{results[0]['function']['arity']}`"
+            ]
         else:
-            lines = [f"# Functions matching `{function_name}`", f"", f"Found **{len(results)}** match(es):"]
+            lines = [
+                f"# Functions matching `{function_name}`",
+                f"",
+                f"Found **{len(results)}** match(es):",
+            ]
 
         for result in results:
-            module_name = result['module']
-            func = result['function']
-            file_path = result['file']
+            module_name = result["module"]
+            func = result["function"]
+            file_path = result["file"]
 
             # Skip the section header for single results
             if len(results) == 1:
                 lines.extend(["", f"  `{file_path}:{func['line']}`"])
             else:
-                lines.extend(["", "---", "", f"## `{module_name}.{func['name']}/{func['arity']}`"])
+                lines.extend(
+                    [
+                        "",
+                        "---",
+                        "",
+                        f"## `{module_name}.{func['name']}/{func['arity']}`",
+                    ]
+                )
                 lines.append(f"`{file_path}:{func['line']}` • {func['type']}")
 
             # Add documentation if present
-            if func.get('doc'):
-                lines.extend(["", "**Documentation:**", "", func['doc']])
+            if func.get("doc"):
+                lines.extend(["", "**Documentation:**", "", func["doc"]])
 
             # Add signature
             sig = ModuleFormatter._format_function_signature(func)
@@ -272,17 +291,19 @@ No functions matching `{function_name}` were found in the index.
                 lines.extend(["", "**Signature:**", "", f"```", f"{sig}", "```"])
 
             # Add call sites
-            call_sites = result.get('call_sites', [])
+            call_sites = result.get("call_sites", [])
             indent = "  " if len(results) == 1 else ""
 
             if call_sites:
                 # Check if we have usage examples (code lines)
-                has_examples = any('code_line' in site for site in call_sites)
+                has_examples = any("code_line" in site for site in call_sites)
 
                 if has_examples:
                     # Separate into code and test call sites
-                    code_sites = [s for s in call_sites if 'test' not in s['file'].lower()]
-                    test_sites = [s for s in call_sites if 'test' in s['file'].lower()]
+                    code_sites = [
+                        s for s in call_sites if "test" not in s["file"].lower()
+                    ]
+                    test_sites = [s for s in call_sites if "test" in s["file"].lower()]
 
                     lines.append(f"{indent}**Usage Examples:**")
 
@@ -290,16 +311,18 @@ No functions matching `{function_name}` were found in the index.
                         lines.append(f"{indent}  Code ({len(code_sites)}):")
                         for site in code_sites:
                             # Format calling location with function if available
-                            calling_func = site.get('calling_function')
+                            calling_func = site.get("calling_function")
                             if calling_func:
                                 caller = f"{site['calling_module']}.{calling_func['name']}/{calling_func['arity']}"
                             else:
-                                caller = site['calling_module']
+                                caller = site["calling_module"]
 
-                            lines.append(f"{indent}  - `{caller}` at `{site['file']}:{site['line']}`")
+                            lines.append(
+                                f"{indent}  - `{caller}` at `{site['file']}:{site['line']}`"
+                            )
 
                             # Add the actual code line if available
-                            if 'code_line' in site:
+                            if "code_line" in site:
                                 lines.append(f"{indent}    ```")
                                 lines.append(f"{indent}    {site['code_line']}")
                                 lines.append(f"{indent}    ```")
@@ -310,23 +333,27 @@ No functions matching `{function_name}` were found in the index.
                         lines.append(f"{indent}  Test ({len(test_sites)}):")
                         for site in test_sites:
                             # Format calling location with function if available
-                            calling_func = site.get('calling_function')
+                            calling_func = site.get("calling_function")
                             if calling_func:
                                 caller = f"{site['calling_module']}.{calling_func['name']}/{calling_func['arity']}"
                             else:
-                                caller = site['calling_module']
+                                caller = site["calling_module"]
 
-                            lines.append(f"{indent}  - `{caller}` at `{site['file']}:{site['line']}`")
+                            lines.append(
+                                f"{indent}  - `{caller}` at `{site['file']}:{site['line']}`"
+                            )
 
                             # Add the actual code line if available
-                            if 'code_line' in site:
+                            if "code_line" in site:
                                 lines.append(f"{indent}    ```")
                                 lines.append(f"{indent}    {site['code_line']}")
                                 lines.append(f"{indent}    ```")
                 else:
                     # Separate into code and test call sites
-                    code_sites = [s for s in call_sites if 'test' not in s['file'].lower()]
-                    test_sites = [s for s in call_sites if 'test' in s['file'].lower()]
+                    code_sites = [
+                        s for s in call_sites if "test" not in s["file"].lower()
+                    ]
+                    test_sites = [s for s in call_sites if "test" in s["file"].lower()]
 
                     call_count = len(call_sites)
                     lines.append(f"{indent}**Called {call_count} times:**")
@@ -335,13 +362,15 @@ No functions matching `{function_name}` were found in the index.
                         lines.append(f"{indent}  Code ({len(code_sites)}):")
                         for site in code_sites:
                             # Format calling location with function if available
-                            calling_func = site.get('calling_function')
+                            calling_func = site.get("calling_function")
                             if calling_func:
                                 caller = f"{site['calling_module']}.{calling_func['name']}/{calling_func['arity']}"
                             else:
-                                caller = site['calling_module']
+                                caller = site["calling_module"]
 
-                            lines.append(f"{indent}  - `{caller}` at `{site['file']}:{site['line']}`")
+                            lines.append(
+                                f"{indent}  - `{caller}` at `{site['file']}:{site['line']}`"
+                            )
 
                     if test_sites:
                         if code_sites:
@@ -349,20 +378,24 @@ No functions matching `{function_name}` were found in the index.
                         lines.append(f"{indent}  Test ({len(test_sites)}):")
                         for site in test_sites:
                             # Format calling location with function if available
-                            calling_func = site.get('calling_function')
+                            calling_func = site.get("calling_function")
                             if calling_func:
                                 caller = f"{site['calling_module']}.{calling_func['name']}/{calling_func['arity']}"
                             else:
-                                caller = site['calling_module']
+                                caller = site["calling_module"]
 
-                            lines.append(f"{indent}  - `{caller}` at `{site['file']}:{site['line']}`")
+                            lines.append(
+                                f"{indent}  - `{caller}` at `{site['file']}:{site['line']}`"
+                            )
             else:
                 lines.extend([f"{indent}*No call sites found*"])
 
         return "\n".join(lines)
 
     @staticmethod
-    def format_function_results_json(function_name: str, results: list[Dict[str, Any]]) -> str:
+    def format_function_results_json(
+        function_name: str, results: list[Dict[str, Any]]
+    ) -> str:
         """
         Format function search results as JSON.
 
@@ -377,28 +410,32 @@ No functions matching `{function_name}` were found in the index.
             error_result = {
                 "error": "Function not found",
                 "query": function_name,
-                "hint": "Verify the function name spelling or try without arity"
+                "hint": "Verify the function name spelling or try without arity",
             }
             return json.dumps(error_result, indent=2)
 
         formatted_results = []
         for result in results:
-            formatted_results.append({
-                "module": result['module'],
-                "function": result['function']['name'],
-                "arity": result['function']['arity'],
-                "full_name": f"{result['module']}.{result['function']['name']}/{result['function']['arity']}",
-                "signature": ModuleFormatter._format_function_signature(result['function']),
-                "location": f"{result['file']}:{result['function']['line']}",
-                "type": result['function']['type'],
-                "doc": result['function'].get('doc'),
-                "call_sites": result.get('call_sites', [])
-            })
+            formatted_results.append(
+                {
+                    "module": result["module"],
+                    "function": result["function"]["name"],
+                    "arity": result["function"]["arity"],
+                    "full_name": f"{result['module']}.{result['function']['name']}/{result['function']['arity']}",
+                    "signature": ModuleFormatter._format_function_signature(
+                        result["function"]
+                    ),
+                    "location": f"{result['file']}:{result['function']['line']}",
+                    "type": result["function"]["type"],
+                    "doc": result["function"].get("doc"),
+                    "call_sites": result.get("call_sites", []),
+                }
+            )
 
         output = {
             "query": function_name,
             "total_matches": len(results),
-            "results": formatted_results
+            "results": formatted_results,
         }
         return json.dumps(output, indent=2)
 
@@ -455,7 +492,7 @@ class JSONFormatter:
             raise FileNotFoundError(f"Input file not found: {input_path}")
 
         # Read the input file
-        with open(input_path, 'r') as f:
+        with open(input_path, "r") as f:
             json_string = f.read()
 
         # Format the JSON
@@ -463,9 +500,9 @@ class JSONFormatter:
 
         # Write to output file if specified, otherwise return for stdout
         if output_path:
-            with open(output_path, 'w') as f:
+            with open(output_path, "w") as f:
                 f.write(formatted)
-                f.write('\n')  # Add trailing newline
+                f.write("\n")  # Add trailing newline
             print(f"Formatted JSON written to: {output_path}", file=sys.stderr)
 
         return formatted
@@ -488,31 +525,25 @@ def main():
     parser = argparse.ArgumentParser(
         description="Pretty print JSON files with customizable formatting"
     )
+    parser.add_argument("input", type=Path, help="Input JSON file to format")
     parser.add_argument(
-        "input",
-        type=Path,
-        help="Input JSON file to format"
+        "-o", "--output", type=Path, help="Output file (default: print to stdout)"
     )
     parser.add_argument(
-        "-o", "--output",
-        type=Path,
-        help="Output file (default: print to stdout)"
-    )
-    parser.add_argument(
-        "-i", "--indent",
+        "-i",
+        "--indent",
         type=int,
         default=2,
-        help="Number of spaces for indentation (default: 2)"
+        help="Number of spaces for indentation (default: 2)",
     )
     parser.add_argument(
-        "-s", "--sort-keys",
+        "-s",
+        "--sort-keys",
         action="store_true",
-        help="Sort dictionary keys alphabetically"
+        help="Sort dictionary keys alphabetically",
     )
     parser.add_argument(
-        "--compact",
-        action="store_true",
-        help="Use compact formatting (no indentation)"
+        "--compact", action="store_true", help="Use compact formatting (no indentation)"
     )
 
     args = parser.parse_args()
