@@ -27,7 +27,7 @@ class ElixirIndexer:
             "priv",
         }
 
-    def index_repository(self, repo_path: str, output_path: str = "data/index.json"):
+    def index_repository(self, repo_path: str, output_path: str = ".cicada/index.json"):
         """
         Index an Elixir repository.
 

@@ -2,4 +2,4 @@ repository:
   path: /path/to/your/elixir/project
 
 storage:
-  index_path: ./data/index.json
+  index_path: ./.cicada/index.json

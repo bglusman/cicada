@@ -69,7 +69,7 @@ class CicadaServer:
         """Load the PR index from JSON file."""
         # Get repo path from config
         repo_path = Path(self.config.get("repository", {}).get("path", "."))
-        pr_index_path = repo_path / "data" / "pr_index.json"
+        pr_index_path = repo_path / ".cicada" / "pr_index.json"
 
         if not pr_index_path.exists():
             print(f"Warning: PR index not found at {pr_index_path}", file=sys.stderr)
