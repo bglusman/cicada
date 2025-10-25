@@ -47,7 +47,7 @@ def install_cicada(target_dir, github_url=None):
         github_url: GitHub URL to clone from (optional)
 
     Returns:
-        Path to the cicada installation
+        Tuple of (Path to the cicada installation, bool indicating if already installed)
     """
     target_path = Path(target_dir).resolve()
 
@@ -58,7 +58,7 @@ def install_cicada(target_dir, github_url=None):
         # Get the site-packages or installation directory
         package_path = Path(cicada.mcp_server.__file__).parent.parent
         print(f"✓ Using installed cicada package")
-        return package_path
+        return package_path, True  # Already installed
     except ImportError:
         pass
 
@@ -66,12 +66,12 @@ def install_cicada(target_dir, github_url=None):
     current_dir = Path.cwd()
     if (current_dir / "cicada" / "mcp_server.py").exists():
         print(f"✓ Using existing cicada installation at {current_dir}")
-        return current_dir
+        return current_dir, False
 
     # Check if target directory already has cicada
     if (target_path / "cicada" / "mcp_server.py").exists():
         print(f"✓ Using existing cicada installation at {target_path}")
-        return target_path
+        return target_path, False
 
     # Download from GitHub
     if github_url:
@@ -84,7 +84,7 @@ def install_cicada(target_dir, github_url=None):
         print("Hint: Run with --github-url https://github.com/wende/cicada.git", file=sys.stderr)
         sys.exit(1)
 
-    return target_path
+    return target_path, False
 
 
 def check_uv_available():
@@ -292,10 +292,14 @@ def main():
             cicada_dir = Path.home() / ".cicada"
 
     # Install or locate cicada
-    cicada_dir = install_cicada(cicada_dir, args.github_url)
+    cicada_dir, is_already_installed = install_cicada(cicada_dir, args.github_url)
 
-    # Install dependencies
-    if not args.skip_install:
+    # Install dependencies (skip if already installed via pip/uvx)
+    if is_already_installed:
+        # Package already installed, use current Python
+        python_bin = sys.executable
+        print(f"✓ Using Python from installed package: {python_bin}")
+    elif not args.skip_install:
         # Determine which package manager to use
         use_uv = None
         if args.use_uv:
