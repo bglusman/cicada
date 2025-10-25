@@ -3,6 +3,7 @@ Integration tests for MCP server git history functionality.
 """
 
 import asyncio
+import json
 import os
 import pytest
 import yaml
@@ -13,6 +14,7 @@ from cicada.mcp_server import CicadaServer
 @pytest.fixture
 def test_server():
     """Fixture to create a test MCP server instance."""
+    # Use the shared index created by conftest.py
     # Create a test config
     test_config = {
         'repository': {'path': '.'},
@@ -27,7 +29,7 @@ def test_server():
         server = CicadaServer(test_config_path)
         yield server
     finally:
-        # Cleanup
+        # Cleanup - only remove the config file, not the shared index
         if os.path.exists(test_config_path):
             os.remove(test_config_path)
 
@@ -186,10 +188,26 @@ def test_git_helper_not_available():
     """Test behavior when git helper is not available."""
     print("\nTesting behavior when git is not available...")
 
+    # Create a unique minimal valid index for this test
+    os.makedirs('.cicada', exist_ok=True)
+
+    minimal_index = {
+        'modules': {},
+        'metadata': {
+            'total_modules': 0,
+            'repo_path': '/tmp'
+        }
+    }
+
+    # Use a unique index file for this test
+    index_path = '.cicada/test_nogit_index.json'
+    with open(index_path, 'w') as f:
+        json.dump(minimal_index, f)
+
     # Create a config pointing to a non-git directory
     test_config = {
         'repository': {'path': '/tmp'},
-        'storage': {'index_path': '.cicada/index.json'}
+        'storage': {'index_path': index_path}
     }
 
     test_config_path = 'test_nogit_config.yaml'
@@ -211,8 +229,11 @@ def test_git_helper_not_available():
         print("  ✓ Non-git repo handled gracefully")
 
     finally:
+        # Clean up test-specific files only
         if os.path.exists(test_config_path):
             os.remove(test_config_path)
+        if os.path.exists(index_path):
+            os.remove(index_path)
 
 
 def test_get_file_history_markdown_format(test_server):
@@ -274,10 +295,26 @@ def test_git_history_includes_all_fields(test_server):
 if __name__ == '__main__':
     print("Running MCP git integration tests...\n")
 
+    # Create a minimal valid index for standalone testing
+    os.makedirs('.cicada', exist_ok=True)
+
+    minimal_index = {
+        'modules': {},
+        'metadata': {
+            'total_modules': 0,
+            'repo_path': '.'
+        }
+    }
+
+    # Use a unique index file for standalone execution
+    index_path = '.cicada/test_standalone_index.json'
+    with open(index_path, 'w') as f:
+        json.dump(minimal_index, f)
+
     # Create a test server for standalone execution
     test_config = {
         'repository': {'path': '.'},
-        'storage': {'index_path': '.cicada/index.json'}
+        'storage': {'index_path': index_path}
     }
 
     test_config_path = 'test_mcp_git_config.yaml'
@@ -316,6 +353,8 @@ if __name__ == '__main__':
         traceback.print_exc()
         exit(1)
     finally:
-        # Cleanup
+        # Cleanup - remove test-specific files only
         if os.path.exists(test_config_path):
             os.remove(test_config_path)
+        if os.path.exists(index_path):
+            os.remove(index_path)
