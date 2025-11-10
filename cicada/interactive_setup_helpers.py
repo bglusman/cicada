@@ -31,7 +31,7 @@ _EDITOR_OPTIONS = (
     ("VS Code", "vs"),
     ("Gemini CLI", "gemini"),
     ("Codex", "codex"),
-    ("OpenCode", "opencode")
+    ("OpenCode", "opencode"),
 )
 
 EDITOR_ITEMS = [label for label, _ in _EDITOR_OPTIONS]

@@ -345,7 +345,14 @@ def show_full_interactive_setup(repo_path: str | Path | None = None) -> None:
                     print("Setup cancelled. Exiting...")
                     sys.exit(1)
 
-                editor_map = {0: "claude", 1: "cursor", 2: "vs", 3: "gemini", 4: "codex", 5: "opencode"}
+                editor_map = {
+                    0: "claude",
+                    1: "cursor",
+                    2: "vs",
+                    3: "gemini",
+                    4: "codex",
+                    5: "opencode",
+                }
                 editor = editor_map[
                     int(editor_index) if isinstance(editor_index, int) else editor_index[0]
                 ]
@@ -410,7 +417,14 @@ def _text_based_editor_selection() -> str:
             if not choice:
                 choice = "1"
             if choice in ("1", "2", "3", "4", "5", "6"):
-                editor_map = {"1": "claude", "2": "cursor", "3": "vs", "4": "gemini", "5": "codex", "6": "opencode"}
+                editor_map = {
+                    "1": "claude",
+                    "2": "cursor",
+                    "3": "vs",
+                    "4": "gemini",
+                    "5": "codex",
+                    "6": "opencode",
+                }
                 return editor_map[choice]
             print("Invalid choice. Please enter 1-6.")
         except (KeyboardInterrupt, EOFError):
