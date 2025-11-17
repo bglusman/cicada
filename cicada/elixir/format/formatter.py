@@ -314,9 +314,7 @@ class ModuleFormatter:
             last_component = module_name.split(".")[-1] if "." in module_name else module_name
             if last_component and last_component.strip():
                 lines.append(f"  • Wildcard search: search_module('*{last_component}*')")
-                lines.append(
-                    f"  • Semantic search: search_by_features(['{last_component.lower()}'])"
-                )
+                lines.append(f"  • Semantic search: query(['{last_component.lower()}'])")
 
         lines.extend(
             [
@@ -680,17 +678,17 @@ class ModuleFormatter:
   • Search without arity: `{func_only}` (if you used /{'{arity}'})
   • Search without module: `{func_only}` (searches all modules)
   • Wildcard search: `*{func_only}*` or `{func_only}*`
-  • Semantic search: search_by_features(['{func_only.lower()}'])
+  • Semantic search: query(['{func_only.lower()}'])
   • Check spelling (function names are case-sensitive)
 
-Tip: If you're exploring code, try search_by_features first to discover functions by what they do.
+Tip: If you're exploring code, try query first to discover functions by what they do.
 
 ## Was this function recently removed?
 
 If this function was deleted:
   • Check recent PRs: get_file_pr_history("<file_path>")
   • Search git history for the function name
-  • Find what replaced it: search_by_features(['<concept>'])
+  • Find what replaced it: query(['<concept>'])
 """
             )
 
@@ -1089,62 +1087,21 @@ If this function was deleted:
         """
         lines: list[str] = []
 
-        for result in results:
-            result_type = result["type"]
+        for idx, result in enumerate(results, 1):
             name = result["name"]
             file_path = result["file"]
             line = result["line"]
             score = result["score"]
             matched_keywords = result["matched_keywords"]
-            keyword_sources = result.get("keyword_sources", {})
 
-            # Determine match source indicator
-            match_indicator = ""
-            if keyword_sources:
-                sources = set(keyword_sources.values())
-                if sources == {"docs"}:
-                    match_indicator = " 📄"
-                elif sources == {"strings"}:
-                    match_indicator = " 💬"
-                elif "both" in sources or ({"docs", "strings"}.issubset(sources)):
-                    match_indicator = " 📄💬"
-
-            # Compact format with type indication and match source
-            type_label = "Module" if result_type == "module" else "Function"
-            lines.append(f"{type_label}: {name}{match_indicator}")
+            # Compact header: number, name, and score on first line
             if show_scores:
-                lines.append(f"Score: {score:.2f}")
-            lines.append(f"Path: {file_path}:{line}")
-
-            # Show matched keywords with their sources
-            if matched_keywords:
-                kw_with_sources = []
-                for kw in matched_keywords:
-                    source = keyword_sources.get(kw)
-                    if source == "docs":
-                        kw_with_sources.append(kw + " (📄)")
-                    elif source == "strings":
-                        kw_with_sources.append(kw + " (💬)")
-                    elif source == "both":
-                        kw_with_sources.append(kw + " (📄💬)")
-                    else:
-                        kw_with_sources.append(kw)
-                lines.append("Matched: " + ", ".join(kw_with_sources))
+                lines.append(f"{idx}. {name} | {score:.2f}")
             else:
-                lines.append("Matched: None")
+                lines.append(f"{idx}. {name}")
 
-            # Show string sources if available
-            string_sources = result.get("string_sources", [])
-            if string_sources:
-                lines.append("String literals:")
-                for src in string_sources[:3]:  # Show up to 3 strings
-                    # Truncate long strings
-                    string_content = src["string"]
-                    if len(string_content) > 60:
-                        string_content = string_content[:60] + "..."
-                    lines.append(f'  • "{string_content}" (line {src["line"]})')
-                if len(string_sources) > 3:
-                    lines.append(f"  ... and {len(string_sources) - 3} more")
+            # Path on second line
+            lines.append(f"{file_path}:{line}")
 
             # Show co-change information if available
             cochange_info = result.get("cochange_info")
@@ -1158,9 +1115,28 @@ If this function was deleted:
             if doc:
                 doc_lines = doc.strip().split("\n")
                 first_line = doc_lines[0] if doc_lines else ""
-                lines.append(f'Doc: "{first_line}"')
+                # Wrap at ~100 characters
+                if len(first_line) > 100:
+                    first_line = first_line[:100] + "..."
+                lines.append(first_line)
 
-            lines.append("---")  # Separator between results
+            # Matched keywords with source indicators
+            if matched_keywords:
+                keyword_sources = result.get("keyword_sources", {})
+                kw_with_sources: list[str] = []
+                for kw in matched_keywords:
+                    source = keyword_sources.get(kw)
+                    if source == "docs":
+                        kw_with_sources.append(kw + " (in docs)")
+                    elif source == "strings":
+                        kw_with_sources.append(kw + " (in strings)")
+                    elif source == "both":
+                        kw_with_sources.append(kw + " (in docs+strings)")
+                    else:
+                        kw_with_sources.append(kw)
+                lines.append("Matched keywords: " + ", ".join(kw_with_sources))
+
+            lines.append("")  # Blank line between results
 
         return "\n".join(lines)
 

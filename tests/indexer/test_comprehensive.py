@@ -1156,7 +1156,9 @@ end
             "last_modified": {"date": "2024-03-15T10:30:00", "sha": "def456"},
             "total_modifications": 5,
         }
-        mock_git_helper.get_function_evolution.return_value = mock_evolution
+
+        # Mock the get_function_evolution method to return evolution for any function
+        mock_git_helper.get_function_evolution = Mock(return_value=mock_evolution)
         mock_git_helper.repo_path = tmp_path
 
         # Patch GitHelper to return our mock
@@ -1230,7 +1232,11 @@ end
 
         # Mock GitHelper to raise exception
         mock_git_helper = Mock()
-        mock_git_helper.get_function_evolution.side_effect = Exception("Git error")
+
+        def mock_batch_error(file_path, functions):
+            raise Exception("Git error")
+
+        mock_git_helper.get_functions_evolution_batch = mock_batch_error
         mock_git_helper.repo_path = tmp_path
 
         def mock_git_helper_init(repo_path):
@@ -1244,9 +1250,13 @@ end
 
         index = indexer.index_repository(str(tmp_path), str(output_path), compute_timestamps=True)
 
-        # Should not crash, should show warning
-        captured = capsys.readouterr()
-        assert "Could not compute timestamps" in captured.err
+        # Should not crash, errors are silently skipped to avoid CLI noise
+        # Functions without git history simply won't have timestamps
 
-        # Index should still be created
+        # Index should still be created successfully
         assert "TestModule" in index["modules"]
+
+        # Function should exist but without timestamp fields (git error was silently skipped)
+        test_func = index["modules"]["TestModule"]["functions"][0]
+        assert test_func["name"] == "test_function"
+        assert "last_modified_at" not in test_func  # Timestamp computation failed

@@ -143,7 +143,7 @@ class ToolRouter:
             git_handler: Handler for git history tools
             pr_handler: Handler for PR history tools
             dependency_handler: Handler for dependency analysis tools
-            analysis_handler: Handler for analysis tools (keywords, dead code)
+            analysis_handler: Handler for analysis tools (query, dead code)
         """
         self.module_handler = module_handler
         self.function_handler = function_handler
@@ -365,9 +365,70 @@ class ToolRouter:
 
             return await self.pr_handler.get_file_pr_history(file_path)
 
-        elif name == "search_by_features" or name == "search_by_keywords":
-            # Support both names for backward compatibility
-            # search_by_keywords is deprecated but still functional
+        elif name == "query":
+            query = arguments.get("query")
+            scope = arguments.get("scope", "all")
+            filter_type = arguments.get("filter_type", "all")
+            match_source = arguments.get("match_source", "all")
+            max_results = arguments.get("max_results", 10)
+            path_pattern = arguments.get("path_pattern")
+            include_tests = arguments.get("include_tests", True)
+            show_snippets = arguments.get("show_snippets", False)
+
+            # Validate required argument
+            if not query:
+                error_msg = "'query' is required"
+                return [TextContent(type="text", text=error_msg)]
+
+            # Validate query type
+            if not isinstance(query, (str, list)):
+                error_msg = "'query' must be a string or list of strings"
+                return [TextContent(type="text", text=error_msg)]
+
+            if isinstance(query, list) and not all(isinstance(q, str) for q in query):
+                error_msg = "'query' list must contain only strings"
+                return [TextContent(type="text", text=error_msg)]
+
+            # Validate enum parameters
+            if scope not in ("all", "recent", "public", "private"):
+                error_msg = "'scope' must be one of: 'all', 'recent', 'public', 'private'"
+                return [TextContent(type="text", text=error_msg)]
+
+            if filter_type not in ("all", "modules", "functions"):
+                error_msg = "'filter_type' must be one of: 'all', 'modules', 'functions'"
+                return [TextContent(type="text", text=error_msg)]
+
+            if match_source not in ("all", "docs", "strings"):
+                error_msg = "'match_source' must be one of: 'all', 'docs', 'strings'"
+                return [TextContent(type="text", text=error_msg)]
+
+            # Validate max_results
+            if not isinstance(max_results, int) or max_results < 1:
+                error_msg = "'max_results' must be a positive integer"
+                return [TextContent(type="text", text=error_msg)]
+
+            # Validate include_tests
+            if not isinstance(include_tests, bool):
+                error_msg = "'include_tests' must be a boolean"
+                return [TextContent(type="text", text=error_msg)]
+
+            # Validate show_snippets
+            if not isinstance(show_snippets, bool):
+                error_msg = "'show_snippets' must be a boolean"
+                return [TextContent(type="text", text=error_msg)]
+
+            return await self.analysis_handler.query(
+                query,
+                scope,
+                filter_type,
+                match_source,
+                max_results,
+                path_pattern,
+                include_tests,
+                show_snippets,
+            )
+
+        elif name in ("search_by_features", "search_by_keywords"):
             keywords = arguments.get("keywords")
             filter_type = arguments.get("filter_type", "all")
             min_score = arguments.get("min_score", 0.0)
@@ -378,16 +439,8 @@ class ToolRouter:
                 error_msg = "'keywords' is required"
                 return [TextContent(type="text", text=error_msg)]
 
-            if not isinstance(keywords, list):
-                error_msg = "'keywords' must be a list of strings"
-                return [TextContent(type="text", text=error_msg)]
-
             if filter_type not in ("all", "modules", "functions"):
                 error_msg = "'filter_type' must be one of: 'all', 'modules', 'functions'"
-                return [TextContent(type="text", text=error_msg)]
-
-            if not isinstance(min_score, (int, float)) or min_score < 0.0 or min_score > 1.0:
-                error_msg = "'min_score' must be a number between 0.0 and 1.0"
                 return [TextContent(type="text", text=error_msg)]
 
             if match_source not in ("all", "docs", "strings"):
@@ -452,6 +505,91 @@ class ToolRouter:
             return await self.dependency_handler.get_function_dependencies(
                 module_name, function_name, arity, output_format, include_context
             )
+
+        elif name == "expand_result":
+            identifier = arguments.get("identifier")
+            result_type = arguments.get("type", "auto")
+            include_code = arguments.get("include_code", True)
+            include_relationships = arguments.get("include_relationships", True)
+            output_format = arguments.get("format", "markdown")
+
+            # Validate required parameter
+            if not identifier:
+                error_msg = "'identifier' is required"
+                return [TextContent(type="text", text=error_msg)]
+
+            # Validate enum parameters
+            if result_type not in ("auto", "module", "function"):
+                error_msg = "'type' must be one of: 'auto', 'module', 'function'"
+                return [TextContent(type="text", text=error_msg)]
+
+            if output_format not in ("markdown", "json"):
+                error_msg = "'format' must be one of: 'markdown', 'json'"
+                return [TextContent(type="text", text=error_msg)]
+
+            # Validate boolean parameters
+            if not isinstance(include_code, bool):
+                error_msg = "'include_code' must be a boolean"
+                return [TextContent(type="text", text=error_msg)]
+
+            if not isinstance(include_relationships, bool):
+                error_msg = "'include_relationships' must be a boolean"
+                return [TextContent(type="text", text=error_msg)]
+
+            # Auto-detect type if needed
+            if result_type == "auto":
+                # If it has arity notation (e.g., /2), it's a function
+                if "/" in identifier:
+                    result_type = "function"
+                # Check if it exists as a module in the index
+                elif identifier in self.module_handler.index.get("modules", {}):
+                    result_type = "module"
+                else:
+                    # If not found as module, assume function (will error appropriately later)
+                    result_type = "function"
+
+            # Route to appropriate handler
+            if result_type == "module":
+                # Check if module exists
+                if identifier not in self.module_handler.index.get("modules", {}):
+                    error_msg = f"Module not found: {identifier}"
+                    return [TextContent(type="text", text=error_msg)]
+
+                # Use existing module search handler
+                return await self.module_handler.search_module(
+                    identifier,
+                    output_format=output_format,
+                    visibility="all",  # Show all functions (public and private)
+                    pr_info=None,
+                    staleness_info=None,
+                )
+            else:  # function
+                # Parse function reference to extract components
+                function_name = identifier
+                module_path = None
+
+                # If it contains a module path, split on the last dot
+                if "." in identifier:
+                    parts = identifier.rsplit(".", 1)
+                    if len(parts) == 2:
+                        module_path = parts[0]
+                        function_name = parts[1]
+
+                if not function_name:
+                    error_msg = f"Invalid function reference: {identifier}"
+                    return [TextContent(type="text", text=error_msg)]
+
+                # Use existing function search handler
+                return await self.function_handler.search_function(
+                    function_name=function_name,
+                    output_format=output_format,
+                    include_usage_examples=include_relationships,  # Show usage if requested
+                    max_examples=5,
+                    usage_type="all",
+                    changed_since=None,
+                    show_relationships=include_relationships,
+                    module_path=module_path,
+                )
 
         else:
             raise ValueError(f"Unknown tool: {name}")
