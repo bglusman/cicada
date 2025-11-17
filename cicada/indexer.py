@@ -17,6 +17,7 @@ from cicada.elixir.dependency_analyzer import (
 )
 from cicada.elixir.parser import ElixirParser
 from cicada.git import GitHelper
+from cicada.git.cochange_analyzer import CoChangeAnalyzer
 from cicada.tier import read_keyword_extraction_config
 from cicada.utils import (
     load_index,
@@ -110,6 +111,144 @@ class ElixirIndexer:
             return True
         return False
 
+    def _integrate_cochange_data(self, all_modules: dict, cochange_data: dict, repo_path: Path):
+        """
+        Integrate co-change data into module and function structures.
+
+        Args:
+            all_modules: Dictionary of all indexed modules
+            cochange_data: Co-change analysis results from CoChangeAnalyzer
+            repo_path: Path to repository root
+        """
+        file_to_module = self._build_file_to_module_mapping(all_modules, repo_path)
+        self._integrate_file_cochanges(
+            all_modules, cochange_data["file_pairs"], file_to_module, repo_path
+        )
+        self._integrate_function_cochanges(all_modules, cochange_data["function_pairs"])
+
+    def _build_file_to_module_mapping(self, all_modules: dict, repo_path: Path) -> dict[str, str]:
+        """Build reverse mapping from file path to module name.
+
+        Args:
+            all_modules: Dictionary of all indexed modules
+            repo_path: Path to repository root
+
+        Returns:
+            Dictionary mapping file paths to module names
+        """
+        file_to_module = {}
+        for module_name, module_info in all_modules.items():
+            if "file" in module_info:
+                file_path = self._normalize_file_path(module_info["file"], repo_path)
+                file_to_module[file_path] = module_name
+        return file_to_module
+
+    def _normalize_file_path(self, file_path: str, repo_path: Path) -> str:
+        """Normalize file path to be relative to repo root.
+
+        Args:
+            file_path: Absolute or relative file path
+            repo_path: Path to repository root
+
+        Returns:
+            File path relative to repo root
+        """
+        if file_path.startswith(str(repo_path)):
+            return str(Path(file_path).relative_to(repo_path))
+        return file_path
+
+    def _integrate_file_cochanges(
+        self,
+        all_modules: dict,
+        file_pairs: dict[tuple[str, str], int],
+        file_to_module: dict[str, str],
+        repo_path: Path,
+    ):
+        """Integrate file-level co-changes into modules.
+
+        Args:
+            all_modules: Dictionary of all indexed modules
+            file_pairs: Dictionary of file pair co-change counts
+            file_to_module: Mapping from file paths to module names
+            repo_path: Path to repository root
+        """
+        for _module_name, module_info in all_modules.items():
+            module_file = self._normalize_file_path(module_info.get("file", ""), repo_path)
+
+            # Find all files that co-changed with this module's file
+            cochange_files = [
+                {"file": related_file, "count": count}
+                for related_file, count in CoChangeAnalyzer.find_cochange_pairs(
+                    module_file, file_pairs
+                )
+            ]
+
+            # Sort by count (descending) and add to module
+            cochange_files.sort(key=lambda x: x["count"], reverse=True)
+            module_info["cochange_files"] = cochange_files
+
+    def _integrate_function_cochanges(
+        self, all_modules: dict, function_pairs: dict[tuple[str, str], int]
+    ):
+        """Integrate function-level co-changes into functions.
+
+        Args:
+            all_modules: Dictionary of all indexed modules
+            function_pairs: Dictionary of function pair co-change counts
+        """
+        for module_name, module_info in all_modules.items():
+            if "functions" not in module_info:
+                continue
+
+            for func_info in module_info["functions"]:
+                func_sig = f"{module_name}.{func_info['name']}/{func_info.get('arity', 0)}"
+                cochange_functions = self._extract_related_functions(func_sig, function_pairs)
+                func_info["cochange_functions"] = cochange_functions
+
+    def _extract_related_functions(
+        self, func_sig: str, function_pairs: dict[tuple[str, str], int]
+    ) -> list[dict]:
+        """Extract functions that co-changed with the given function signature.
+
+        Args:
+            func_sig: Function signature (e.g., "MyApp.Auth.validate_user/2")
+            function_pairs: Dictionary of function pair co-change counts
+
+        Returns:
+            List of related function dicts with module, function, arity, count keys
+        """
+        cochange_functions = []
+
+        # Find all functions that co-changed with this function
+        for related_func, count in CoChangeAnalyzer.find_cochange_pairs(func_sig, function_pairs):
+            parsed = self._parse_function_signature(related_func)
+            if parsed:
+                cochange_functions.append({**parsed, "count": count})
+
+        # Sort by count (descending)
+        cochange_functions.sort(key=lambda x: x["count"], reverse=True)
+        return cochange_functions
+
+    def _parse_function_signature(self, func_sig: str) -> dict | None:
+        """Parse function signature (Module.function/arity) into components.
+
+        Args:
+            func_sig: Function signature like "MyApp.Auth.validate_user/2"
+
+        Returns:
+            Dict with module, function, arity keys, or None if invalid
+        """
+        if "." not in func_sig or "/" not in func_sig:
+            return None
+
+        try:
+            module_part, func_part = func_sig.rsplit(".", 1)
+            func_name, arity_str = func_part.rsplit("/", 1)
+            arity = int(arity_str)
+            return {"module": module_part, "function": func_name, "arity": arity}
+        except (ValueError, AttributeError):
+            return None
+
     def index_repository(
         self,
         repo_path: str,
@@ -117,6 +256,7 @@ class ElixirIndexer:
         extract_keywords: bool = False,
         extract_string_keywords: bool = False,
         compute_timestamps: bool = False,
+        extract_cochange: bool = False,
     ):
         """
         Index an Elixir repository.
@@ -127,6 +267,7 @@ class ElixirIndexer:
             extract_keywords: If True, extract keywords from documentation using NLP
             extract_string_keywords: If True, extract keywords from string literals in function bodies
             compute_timestamps: If True, compute git history timestamps for functions
+            extract_cochange: If True, analyze git history for co-change patterns
 
         Returns:
             Dictionary containing the index data
@@ -603,6 +744,24 @@ class ElixirIndexer:
                     break
                 continue
 
+        # Extract co-change relationships if requested
+        cochange_data = None
+        if extract_cochange:
+            if self.verbose:
+                print("Analyzing co-change patterns from git history...")
+
+            analyzer = CoChangeAnalyzer()
+            cochange_data = analyzer.analyze_repository(str(repo_path_obj))
+
+            # Integrate co-change data into modules and functions
+            self._integrate_cochange_data(all_modules, cochange_data, repo_path_obj)
+
+            if self.verbose:
+                print(
+                    f"  Found {cochange_data['metadata']['file_pairs']} file pairs, "
+                    f"{cochange_data['metadata']['function_pairs']} function pairs"
+                )
+
         # Build final index
         index = {
             "modules": all_modules,
@@ -614,6 +773,10 @@ class ElixirIndexer:
                 "cicada_version": get_version_string(),
             },
         }
+
+        # Add co-change metadata if available
+        if cochange_data:
+            index["cochange_metadata"] = cochange_data["metadata"]
 
         # Save to file
         output_path_obj = Path(output_path)
@@ -668,6 +831,8 @@ class ElixirIndexer:
         repo_path: str,
         output_path: str,
         extract_keywords: bool = False,
+        extract_string_keywords: bool = False,
+        extract_cochange: bool = False,
         force_full: bool = False,
     ):
         """
@@ -681,6 +846,8 @@ class ElixirIndexer:
             repo_path: Path to the Elixir repository root
             output_path: Path where the index JSON file will be saved
             extract_keywords: If True, extract keywords from documentation using NLP
+            extract_string_keywords: If True, extract keywords from string literals
+            extract_cochange: If True, analyze git history for co-change patterns
             force_full: If True, ignore existing hashes and do full reindex
 
         Returns:
@@ -728,7 +895,13 @@ class ElixirIndexer:
         if not existing_index or not existing_hashes:
             if self.verbose:
                 print("No existing index or hashes found. Performing full index...")
-            return self.index_repository(str(repo_path_obj), str(output_path_obj), extract_keywords)
+            return self.index_repository(
+                str(repo_path_obj),
+                str(output_path_obj),
+                extract_keywords,
+                extract_string_keywords,
+                extract_cochange,
+            )
 
         if self.verbose:
             # Read and display keyword extraction config
@@ -978,6 +1151,43 @@ class ElixirIndexer:
         if self.verbose:
             print("\nMerging with existing index...")
         merged_index = merge_indexes_incremental(existing_index, new_index, deleted_files)
+
+        # Extract co-change relationships if requested
+        if extract_cochange or extract_string_keywords:
+            # If co-change data was requested, recompute it for the entire repo
+            # (co-change relationships span multiple files, so we need full analysis)
+            if extract_cochange:
+                if self.verbose:
+                    print("Analyzing co-change patterns from git history...")
+
+                from cicada.git.cochange_analyzer import CoChangeAnalyzer
+
+                analyzer = CoChangeAnalyzer()
+                cochange_data = analyzer.analyze_repository(str(repo_path_obj))
+
+                # Integrate co-change data into modules and functions
+                self._integrate_cochange_data(merged_index["modules"], cochange_data, repo_path_obj)
+
+                # Add co-change metadata
+                merged_index["cochange_metadata"] = cochange_data["metadata"]
+
+                if self.verbose:
+                    print(
+                        f"  Found {cochange_data['metadata']['file_pairs']} file pairs, "
+                        f"{cochange_data['metadata']['function_pairs']} function pairs"
+                    )
+
+            # If string keywords were requested, extract them for all modules
+            # (this requires re-processing since string extraction isn't incremental yet)
+            if extract_string_keywords:
+                if self.verbose:
+                    print("Extracting string keywords from all modules...")
+                # TODO: Implement incremental string keyword extraction
+                # For now, we skip this in incremental mode
+                if self.verbose:
+                    print(
+                        "  Note: String keyword extraction is not yet supported in incremental mode"
+                    )
 
         # Update hashes for all current files
         if self.verbose:
