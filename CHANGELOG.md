@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0-rc0] - 2025-11-22
+
+### Added
+
+- **🎉 Python Language Support** ([#135](https://github.com/wende/cicada/pull/135))
+  - Full Python code indexing via SCIP (Source Code Intelligence Protocol)
+  - Auto-installs scip-python indexer via npm
+  - Complete Python code analysis: modules, classes, functions, call sites
+  - Python-specific formatting (Class.method() notation)
+  - Class display in search_module showing public/private method counts
+  - Language detection with multi-language project support
+  - 128+ tests for Python/SCIP functionality
+
+- **Language-Agnostic Architecture** ([#135](https://github.com/wende/cicada/pull/135))
+  - SCIP layer for universal code intelligence (111KB)
+  - Protobuf-based SCIP protocol support
+  - Language-specific formatters and indexers
+  - Unified index format supporting Python, Elixir, TypeScript
+  - Language detection: Python, Elixir, TypeScript/JavaScript
+  - Enhanced utilities: lookup_module, lookup_function, get_call_sites, etc.
+
+- **MCP Server Modular Architecture** ([#135](https://github.com/wende/cicada/pull/135))
+  - Refactored into separate handler modules for better maintainability
+  - Dedicated handlers: module, function, git, PR, analysis
+  - Improved code organization and testability
+
+### Changed
+
+- **Project Structure Reorganization** ([#135](https://github.com/wende/cicada/pull/135))
+  - `cicada/elixir/` → `cicada/languages/elixir/`
+  - `cicada/elixir/format/` → `cicada/format/`
+  - Language-specific code now under `cicada/languages/{lang}/`
+  - All import paths updated across codebase
+
+- **Dependencies Schema** ([#132](https://github.com/wende/cicada/pull/132))
+  - Module dependencies format changed from dict to list[dict]
+  - Added automatic truncation for large dependency results
+
+### Fixed
+
+- **Search Query Tokenization** ([#131](https://github.com/wende/cicada/pull/131))
+  - Fixed query tokenization to properly handle wildcard patterns
+  - Improved pattern matching for module-qualified searches
+  - Better handling of OR patterns with spaces
+
+- **Dependency Analysis Output** ([#132](https://github.com/wende/cicada/pull/132))
+  - Fixed missing `detailed_dependencies` output in dependency analysis
+  - Added truncation to prevent token overflow on large results
+
+- **Gemini CLI Configuration** ([#130](https://github.com/wende/cicada/pull/130))
+  - Fixed config path to use `settings.json` instead of `.gemini/config.json`
+
+### Internal
+
+- **Test Coverage Improvements** ([#128](https://github.com/wende/cicada/pull/128))
+  - Boosted test coverage for low-coverage files
+  - Added comprehensive test suites for Python support
+  - 1750+ tests passing across Python and Elixir
+
 ## [0.4.2] - 2025-11-20
 
 ### Added

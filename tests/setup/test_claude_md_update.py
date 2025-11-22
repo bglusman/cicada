@@ -28,7 +28,7 @@ def test_update_claude_md_creates_new_section(mock_repo):
     content = claude_md.read_text()
     assert "<cicada>" in content
     assert "</cicada>" in content
-    assert "ALWAYS use cicada-mcp tools for Elixir code searches" in content
+    assert "ALWAYS use cicada-mcp tools for Elixir and Python code searches" in content
     assert "mcp__cicada__search_module" in content
     assert "mcp__cicada__search_function" in content
 
@@ -52,7 +52,7 @@ Some other content.
     assert "<cicada>" in content
     assert "</cicada>" in content
     assert "Old cicada instructions" not in content
-    assert "ALWAYS use cicada-mcp tools for Elixir code searches" in content
+    assert "ALWAYS use cicada-mcp tools for Elixir and Python code searches" in content
 
 
 def test_update_claude_md_skips_if_cicada_mentioned(mock_repo):
@@ -190,7 +190,7 @@ def test_creates_agents_md_for_gemini(mock_repo):
     # Should contain cicada instructions
     assert "<cicada>" in content
     assert "</cicada>" in content
-    assert "ALWAYS use cicada-mcp tools for Elixir code searches" in content
+    assert "ALWAYS use cicada-mcp tools for Elixir and Python code searches" in content
     assert "mcp__cicada__search_module" in content
     assert "mcp__cicada__search_function" in content
 
@@ -210,6 +210,6 @@ def test_creates_agents_md_for_codex(mock_repo):
     # Should contain cicada instructions
     assert "<cicada>" in content
     assert "</cicada>" in content
-    assert "ALWAYS use cicada-mcp tools for Elixir code searches" in content
+    assert "ALWAYS use cicada-mcp tools for Elixir and Python code searches" in content
     assert "mcp__cicada__search_module" in content
     assert "mcp__cicada__search_function" in content

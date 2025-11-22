@@ -93,7 +93,7 @@ When creating a new release:
 
 ## Project Context
 
-- **Language Support:** Currently Elixir only. Python and TypeScript are planned.
+- **Language Support:** Elixir (production), Python (Beta - v0.5.0+), TypeScript (planned).
 - **Primary Installation Method:** uv tool install (recommended over Python direct install)
 
 ## Storage Structure

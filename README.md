@@ -6,12 +6,18 @@
 
 ### **C**ode **I**ntelligence: **C**ontextual **A**nalysis, **D**iscovery, and **A**ttribution
 
-**Give your AI assistant structured access to your Elixir codebase.**
+**Give your AI assistant structured access to your Elixir and Python codebases.**
+
+> **Python support is in Beta** – Full code intelligence with automatic language detection. TypeScript support coming soon.
 
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![codecov](https://codecov.io/gh/wende/cicada/branch/main/graph/badge.svg)](https://codecov.io/gh/wende/cicada)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
+
+[![Elixir Support](https://img.shields.io/badge/Elixir-✓_Production-blueviolet.svg)](https://elixir-lang.org/)
+[![Python Support](https://img.shields.io/badge/Python-🚧_Beta-orange.svg)](https://www.python.org/)
+[![TypeScript Support](https://img.shields.io/badge/TypeScript-Coming_Soon-lightgrey.svg)](https://www.typescriptlang.org/)
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en-US/install-mcp?name=cicada&config=eyJjb21tYW5kIjoidXZ4IGNpY2FkYS1tY3AgLiJ9)
 
@@ -29,13 +35,15 @@ Traditional AI assistants treat your repo like a pile of text. That leads to:
 - **Hallucinated edits:** aliases/imports hide call sites, so refactors miss real usages.
 - **No historical context:** design intent and PR trade-offs never make it into the prompt.
 
-CICADA is an MCP server that gives assistants AST-level knowledge:
+CICADA is an MCP server that gives assistants AST-level knowledge for Elixir and Python (Beta):
 
 - Module + function definitions with signatures, specs, docs, owning files.
+- Class and method tracking for Python, module/function tracking for Elixir.
 - Complete call-site tracking (aliases, imports, dynamic references).
-- Semantic/keyword search so you can ask for "authentication" even if it's called `verify_credentials/2`.
+- Semantic/keyword search so you can ask for "authentication" even if it's called `verify_credentials/2` or `AuthService.check()`.
 - Git + PR attribution to surface *why* code exists.
 - Dead-code detection and module dependency views for safe refactors.
+- Automatic language detection – works seamlessly with both languages.
 
 **Result:** in our comparison, the same question dropped from **3,127 tokens / 52.8s** to **550 tokens / 35s** with correct answers.
 
@@ -63,6 +71,19 @@ uvx cicada-mcp claude   # or cursor, vs
 Runs CICADA on demand (worse indexing quality, but zero install).
 
 </details>
+
+<details>
+<summary><strong>Alternative: Use editor's native MCP installer</strong></summary>
+
+```bash
+claude mcp add uvx cicada-mcp
+gemini mcp add uvx cicada-mcp
+codex mcp add uvx cicada-mcp
+```
+
+Uses your editor's built-in MCP management to install CICADA.
+
+</details>
 </div>
 
 **Available commands after installation:**
@@ -75,8 +96,15 @@ Runs CICADA on demand (worse indexing quality, but zero install).
 
 Ask your assistant:
 ```
+# Elixir
 "Show me the functions in MyApp.User"
 "Where is authenticate/2 called?"
+
+# Python
+"Show me the AuthService class methods"
+"Where is login() used in the codebase?"
+
+# Both languages
 "Find code related to API authentication"
 ```
 
@@ -141,13 +169,15 @@ Enable automatic reindexing when files change by starting the MCP server with th
 }
 ```
 When watch mode is enabled:
-- A separate process monitors `.ex` and `.exs` files for changes
+- A separate process monitors `.ex`, `.exs` (Elixir) and `.py` (Python) files for changes
 - Changes are automatically reindexed (incremental, fast)
 - 2-second debounce prevents excessive reindexing during rapid edits
 - The watch process stops automatically when the MCP server stops
-- Excluded directories: `deps`, `_build`, `node_modules`, `.git`, `assets`, `priv`
+- Excluded directories: `deps`, `_build`, `node_modules`, `.git`, `assets`, `priv`, `.venv`, `venv`
 
 ### CLI Cheat Sheet
+
+**Note:** Language detection is automatic – CICADA detects Elixir (mix.exs) and Python (pyproject.toml) projects automatically.
 
 | Command | Purpose | Run When |
 |---------|---------|---------|
@@ -275,11 +305,39 @@ cat ~/.cicada/projects/<hash>/config.yaml
 
 More detail: [docs/PR_INDEXING.md](docs/PR_INDEXING.md), [docs/08-INCREMENTAL_INDEXING.md](docs/08-INCREMENTAL_INDEXING.md).
 
+<details>
+<summary><b>Python Indexing (Beta)</b></summary>
+
+**Requirements:**
+- Node.js (for scip-python indexer)
+- Python project with pyproject.toml
+
+**First-time setup:**
+CICADA automatically installs scip-python via npm on first index. This may take a minute.
+
+**Known limitations (Beta):**
+- First indexing may be slower than Elixir (SCIP generation step)
+- Large virtual environments (.venv) are automatically excluded
+- Some dynamic Python patterns may not be captured
+
+**Performance tips:**
+```bash
+# Ensure .venv is excluded
+echo "/.venv/" >> .gitignore
+
+# Use --fast tier for quicker indexing
+cicada index --fast .
+```
+
+**Report issues:** [GitHub Issues](https://github.com/wende/cicada/issues) with "Python" label
+
+</details>
+
 ---
 
 ## For AI Assistants
 
-CICADA ships 7 focused MCP tools designed for efficient code exploration.
+CICADA ships 7 focused MCP tools designed for efficient code exploration across Elixir and Python (Beta) codebases.
 
 ### 🧭 Which Tool Should You Use?
 
@@ -305,10 +363,12 @@ CICADA ships 7 focused MCP tools designed for efficient code exploration.
 
 **`search_module`** - Deep module analysis
 - View complete API: functions, signatures, specs, docs
+- For Python: Shows classes with method counts and signatures
+- For Elixir: Shows functions with arity notation
 - Bidirectional analysis:
   - `what_calls_it=true` → See who uses this module (impact analysis)
   - `what_it_calls=true` → See what this module depends on
-- Supports wildcards (`MyApp.*`) and OR patterns (`MyApp.User|MyApp.Post`)
+- Supports wildcards (Elixir: `MyApp.*`, Python: `api.handlers.*`) and OR patterns (`MyApp.User|MyApp.Post`)
 - Filter by visibility (public/private/all)
 
 **`search_function`** - Function usage tracking
@@ -374,7 +434,18 @@ All tools return structured Markdown/JSON snippets (signatures, call sites, PR m
 
 ## Roadmap
 
-### PYTHON AND TYPESCRIPT!!!
+### Current Status
+
+- ✅ **Elixir** - Production ready with full feature support
+- 🚧 **Python** - Beta (v0.5.0-rc0) - Full code intelligence via SCIP
+- 🔜 **TypeScript** - Coming soon
+
+### What's Next
+
+- Stabilize Python support based on user feedback
+- TypeScript/JavaScript support via SCIP
+- Shared/team indexes for collaborative environments
+- Performance optimizations for large codebases
 
 ---
 

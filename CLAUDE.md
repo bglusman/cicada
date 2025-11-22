@@ -46,7 +46,7 @@ When creating a new release:
 
 ## Project Context
 
-- **Language Support:** Currently Elixir only. Python and TypeScript are planned.
+- **Language Support:** Elixir (production), Python (Beta - v0.5.0+), TypeScript (planned).
 - **Primary Installation Method:** uv tool install (recommended over Python direct install)
 
 ## Storage Structure
@@ -1186,7 +1186,7 @@ The project includes `uv.lock` for reproducible builds and `pyproject.toml` for 
 - Tags and publishing is automated via CIA
 
 <cicada>
-  **ALWAYS use cicada-mcp tools for Elixir code searches. NEVER use Grep/Find for these tasks.**
+  **ALWAYS use cicada-mcp tools for Elixir and Python code searches. NEVER use Grep/Find for these tasks.**
 
   ### Use cicada tools for:
   - YOUR PRIMARY TOOL - Start here for ALL code exploration and discovery. `mcp__cicada__query`

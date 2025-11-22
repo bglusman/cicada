@@ -369,7 +369,7 @@ def setup_multiple_editors(
 
 
 def update_claude_md(repo_path: Path, editor: EditorType | None = None) -> None:
-    """Update CLAUDE.md and AGENTS.md with instructions to use cicada-mcp for Elixir codebase searches.
+    """Update CLAUDE.md and AGENTS.md with instructions to use cicada-mcp for Elixir and Python codebase searches.
 
     Args:
         repo_path: Path to the repository
@@ -425,7 +425,7 @@ def _update_md_file(md_path: Path, tools) -> None:
     grep_antipatterns_str = "\n".join(grep_antipatterns)
 
     instruction_content = f"""<cicada>
-  **ALWAYS use cicada-mcp tools for Elixir code searches. NEVER use Grep/Find for these tasks.**
+  **ALWAYS use cicada-mcp tools for Elixir and Python code searches. NEVER use Grep/Find for these tasks.**
 
   ### Use cicada tools for:
 {tool_list_str}
