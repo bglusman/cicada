@@ -115,36 +115,38 @@ class PythonSCIPIndexer(GenericSCIPIndexer):
 
     def _ensure_scip_python_installed(self):
         """
-        Ensure scip-python is installed, auto-install if needed.
+        Ensure scip-python is installed.
+
+        Checks for existing installation (global or local), and auto-installs
+        locally to ~/.cicada/node/ if not found and npm is available.
 
         Raises:
-            RuntimeError: If npm is not available or installation fails
+            RuntimeError: If scip-python is not available and cannot be installed
         """
         if SCIPPythonInstaller.is_scip_python_installed():
             if self.verbose:
                 version = SCIPPythonInstaller.get_scip_python_version()
-                print(f"  Using scip-python {version}")
+                scip_path = SCIPPythonInstaller.get_scip_python_path()
+                if SCIPPythonInstaller.is_local_install(scip_path):
+                    print(f"  Using scip-python {version} (local)")
+                else:
+                    print(f"  Using scip-python {version}")
             return
 
-        # Check npm availability
-        if not SCIPPythonInstaller.is_npm_available():
-            raise RuntimeError(
-                "npm is required to install scip-python.\n"
-                "Install Node.js from: https://nodejs.org/\n"
-                "Or install scip-python manually: npm install -g @sourcegraph/scip-python"
-            )
+        # Try to auto-install locally
+        if SCIPPythonInstaller.is_npm_available():
+            if self.verbose:
+                print("  scip-python not found, installing locally...")
+            if SCIPPythonInstaller.install_locally(verbose=self.verbose):
+                return
 
-        # Auto-install
-        print("Installing scip-python (this may take a minute)...")
-        success = SCIPPythonInstaller.install_scip_python(verbose=self.verbose)
-
-        if not success:
-            raise RuntimeError(
-                "Failed to install scip-python.\n"
-                "Try installing manually: npm install -g @sourcegraph/scip-python"
-            )
-
-        print("✓ scip-python installed successfully")
+        raise RuntimeError(
+            "scip-python is required to index Python repositories.\n"
+            "npm is required to install it. Please install Node.js, then run:\n"
+            "  cicada index <path>  # will auto-install scip-python\n"
+            "Or install manually:\n"
+            "  npm install -g @sourcegraph/scip-python"
+        )
 
     def _run_scip_python(self, repo_path: Path) -> Path:
         """
@@ -171,14 +173,18 @@ class PythonSCIPIndexer(GenericSCIPIndexer):
             if self.verbose:
                 print("  Created temporary pyrightconfig.json to exclude dependencies")
 
-        # Create temporary file for .scip output
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".scip", delete=False, dir=repo_path
-        ) as tmp:
+        # Create temporary file for .scip output in system temp directory
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".scip", delete=False) as tmp:
             scip_file = Path(tmp.name)
 
-        cmd = [
-            "scip-python",
+        # Get scip-python path (global or local)
+        # Note: _ensure_scip_python_installed() must be called before this method
+        scip_python_path = SCIPPythonInstaller.get_scip_python_path()
+        if scip_python_path is None:
+            raise RuntimeError("scip-python not found - call _ensure_scip_python_installed() first")
+
+        cmd: list[str] = [
+            scip_python_path,
             "index",
             str(repo_path),
             "--project-name",
