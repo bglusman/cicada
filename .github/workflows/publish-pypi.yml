@@ -56,7 +56,7 @@ jobs:
       - name: Generate SCIP indexes for tests
         run: |
           # Install scip-python and scip-typescript
-          npm install -g @anthropic/scip-python scip-typescript
+          npm install -g @sourcegraph/scip-python @sourcegraph/scip-typescript
 
           # Generate Python SCIP index
           cd tests/fixtures/sample_python
