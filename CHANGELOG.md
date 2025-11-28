@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.1] - Unreleased
+## [0.5.1] - 2025-11-28
 
 ### Features
 
@@ -55,10 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `git_history`: Compact PR output (single line), descriptions only when requested
 - `expand_result`: Auto-enables verbose mode for full details
 
-**CLI Progress Reporting**
+**CLI Progress Reporting (#192)**
 - CLI index/watch commands now show progress by default
 - Add `--quiet` flag for background watch processes
 - Separate keyword extraction phase for better timing visibility
+
+### Fixed
+
+**Graceful Shutdown for Ctrl+C (#191)**
+- Add KeyboardInterrupt handling in CLI commands for clean exit (code 130)
+- Python indexer now saves partial progress when interrupted during enrichment phases
+- Add interruptible enrichment phases helper for consistent interrupt handling
 
 ## [0.5.0] - 2025-11-25
 
@@ -730,7 +737,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Issues](https://github.com/wende/cicada/issues)
 - [MCP Documentation](https://modelcontextprotocol.io)
 
-[Unreleased]: https://github.com/wende/cicada/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/wende/cicada/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/wende/cicada/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/wende/cicada/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/wende/cicada/compare/v0.4.0...v0.4.2
 [0.4.0]: https://github.com/wende/cicada/compare/v0.3.2...v0.4.0
