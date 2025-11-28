@@ -8,7 +8,9 @@ import json
 import subprocess
 import tempfile
 import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from cicada.git.cochange_analyzer import CoChangeAnalyzer
 from cicada.git.helper import GitHelper
@@ -38,6 +40,7 @@ class PythonSCIPIndexer(BaseIndexer):
             verbose: If True, print detailed progress information
         """
         self.verbose = verbose
+        self._interrupted = False
         self.excluded_dirs = {
             "__pycache__",
             ".venv",
@@ -65,6 +68,42 @@ class PythonSCIPIndexer(BaseIndexer):
     def get_excluded_dirs(self) -> list[str]:
         """Return directories to exclude from indexing."""
         return list(self.excluded_dirs)
+
+    def _run_interruptible_phase(
+        self,
+        phase_name: str,
+        phase_func: Callable[[], Any],
+        skipped_phases: list[str],
+        partial_suffix: str = "",
+    ) -> bool:
+        """Run an enrichment phase that can be interrupted.
+
+        Args:
+            phase_name: Human-readable name of the phase (e.g., "string keywords")
+            phase_func: Callable that performs the phase work
+            skipped_phases: List to append skipped phase names to
+            partial_suffix: Suffix to add if interrupted mid-phase (e.g., " (partial)")
+
+        Returns:
+            True if the phase completed successfully, False otherwise
+        """
+        if self._interrupted:
+            skipped_phases.append(phase_name)
+            return False
+
+        try:
+            phase_func()
+            return True
+        except KeyboardInterrupt:
+            self._interrupted = True
+            skipped_phases.append(f"{phase_name}{partial_suffix}")
+            if self.verbose:
+                print(f"\n  ⚠️  Interrupted during {phase_name}")
+            return False
+        except Exception as e:
+            if self.verbose:
+                print(f"    Warning: {phase_name.capitalize()} failed: {e}")
+            return False
 
     def index_repository(
         self,
@@ -129,6 +168,8 @@ class PythonSCIPIndexer(BaseIndexer):
         """
         # Update verbosity setting from parameter
         self.verbose = verbose
+        # Reset interruption flag for new indexing run
+        self._interrupted = False
 
         repo_path_obj = Path(repo_path).resolve()
         output_path_obj = Path(output_path).resolve()
@@ -256,54 +297,63 @@ class PythonSCIPIndexer(BaseIndexer):
             except Exception as e:
                 raise RuntimeError(f"Failed to convert SCIP to Cicada format: {e}") from e
 
-            # 5.5. Extract keywords from docstrings if requested (separate phase for performance)
-            if extract_keywords and keyword_extractor:
-                try:
-                    self._extract_docstring_keywords(
+            # 5.5-8. Optional enrichment phases (interruptible - will save partial progress)
+            # These phases can be interrupted and we'll still save what we have
+            skipped_phases = []
+
+            # 5.5. Extract keywords from docstrings if requested
+            if (
+                extract_keywords
+                and keyword_extractor
+                and self._run_interruptible_phase(
+                    "docstring keywords",
+                    lambda: self._extract_docstring_keywords(
                         cicada_index, keyword_extractor, keyword_expander
-                    )
-                    log_timing("Docstring keyword extraction")
-                except Exception as e:
-                    if self.verbose:
-                        print(f"    Warning: Docstring keyword extraction failed: {e}")
+                    ),
+                    skipped_phases,
+                )
+            ):
+                log_timing("Docstring keyword extraction")
 
             # 6. Extract string keywords if requested
-            if extract_string_keywords and keyword_extractor:
-                try:
-                    self._extract_string_keywords(
+            if (
+                extract_string_keywords
+                and keyword_extractor
+                and self._run_interruptible_phase(
+                    "string keywords",
+                    lambda: self._extract_string_keywords(
                         cicada_index, repo_path_obj, keyword_extractor, keyword_expander
-                    )
-                    log_timing("String keyword extraction")
-                except Exception as e:
-                    if self.verbose:
-                        print(f"    Warning: String keyword extraction failed: {e}")
+                    ),
+                    skipped_phases,
+                    partial_suffix=" (partial)",
+                )
+            ):
+                log_timing("String keyword extraction")
 
             # 7. Compute timestamps if requested
-            if compute_timestamps:
-                try:
-                    self._compute_timestamps(cicada_index, repo_path_obj)
-                    log_timing("Timestamp computation")
-                except Exception as e:
-                    if self.verbose:
-                        print(f"    Warning: Timestamp computation failed: {e}")
+            if compute_timestamps and self._run_interruptible_phase(
+                "timestamp computation",
+                lambda: self._compute_timestamps(cicada_index, repo_path_obj),
+                skipped_phases,
+            ):
+                log_timing("Timestamp computation")
 
             # 8. Extract co-change relationships if requested
-            if extract_cochange:
-                try:
-                    self._extract_cochange(cicada_index, repo_path_obj)
-                    log_timing("Co-change analysis")
-                except Exception as e:
-                    if self.verbose:
-                        print(f"    Warning: Co-change analysis failed: {e}")
+            if extract_cochange and self._run_interruptible_phase(
+                "co-change analysis",
+                lambda: self._extract_cochange(cicada_index, repo_path_obj),
+                skipped_phases,
+            ):
+                log_timing("Co-change analysis")
 
-            # 9. Save index
+            # 9. Save index (always attempt, even if interrupted)
             try:
                 self._save_index(cicada_index, output_path_obj)
                 log_timing("Index saving")
             except Exception as e:
                 raise RuntimeError(f"Failed to save index: {e}") from e
 
-            # 10. Save file hashes
+            # 10. Save file hashes (always attempt, even if interrupted)
             try:
                 if python_files:  # Only compute hashes if we have files
                     current_hashes = compute_hashes_for_files([str(f) for f in python_files])
@@ -322,7 +372,16 @@ class PythonSCIPIndexer(BaseIndexer):
             file_count = sum(1 for name in all_modules if name.startswith("_file_"))
             class_count = modules_count - file_count
 
-            if self.verbose:
+            if self._interrupted:
+                if self.verbose:
+                    print(
+                        f"\n  ✓ Partial index saved ({modules_count} modules, {functions_count} functions)"
+                    )
+                    if skipped_phases:
+                        print(f"  Skipped phases: {', '.join(skipped_phases)}")
+                    print(f"  Index saved to: {output_path_obj}")
+                    print("  Run again with same options to complete enrichment phases.")
+            elif self.verbose:
                 if class_count > 0:
                     print(
                         f"  Indexed {file_count} files, {class_count} classes, {functions_count} functions"
@@ -337,6 +396,8 @@ class PythonSCIPIndexer(BaseIndexer):
                 "functions_count": functions_count,
                 "files_indexed": len(scip_index.documents),
                 "errors": [],
+                "interrupted": self._interrupted,
+                "skipped_phases": skipped_phases if self._interrupted else [],
             }
 
         except Exception as e:
@@ -474,7 +535,7 @@ class PythonSCIPIndexer(BaseIndexer):
 
     def _extract_string_keywords(
         self, index: dict, repo_path: Path, keyword_extractor, keyword_expander
-    ) -> None:
+    ) -> int:
         """Extract keywords from string literals in Python files.
 
         Args:
@@ -482,19 +543,32 @@ class PythonSCIPIndexer(BaseIndexer):
             repo_path: Repository root path
             keyword_extractor: Keyword extractor instance
             keyword_expander: Keyword expander instance
+
+        Returns:
+            Number of modules processed (may be partial if interrupted)
         """
+        modules = list(index.get("modules", {}).items())
+        total_modules = len(modules)
+
         if self.verbose:
-            print("  Extracting string keywords...")
+            print(f"  Extracting string keywords from {total_modules} modules...")
 
         string_extractor = PythonStringExtractor(min_length=3)
+        processed = 0
 
-        for _module_name, module_data in index.get("modules", {}).items():
+        for _module_name, module_data in modules:
+            # Check for interruption after each module
+            if self._interrupted:
+                break
+
             file_path = module_data.get("file")
             if not file_path:
+                processed += 1
                 continue
 
             full_path = repo_path / file_path
             if not full_path.exists():
+                processed += 1
                 continue
 
             try:
@@ -502,6 +576,7 @@ class PythonSCIPIndexer(BaseIndexer):
                 strings = string_extractor.extract_from_source(source_code)
 
                 if not strings:
+                    processed += 1
                     continue
 
                 # Store string sources
@@ -523,9 +598,23 @@ class PythonSCIPIndexer(BaseIndexer):
                         )
                         module_data["string_keywords"] = string_keywords
 
+                processed += 1
+
+                # Progress reporting
+                if self.verbose and processed % 50 == 0:
+                    print(f"    Processed {processed}/{total_modules} modules...")
+
+            except KeyboardInterrupt:
+                self._interrupted = True
+                if self.verbose:
+                    print(f"\n    Interrupted at {processed}/{total_modules} modules")
+                break
             except Exception as e:
+                processed += 1
                 if self.verbose:
                     print(f"    Warning: Failed to extract strings from {file_path}: {e}")
+
+        return processed
 
     def _compute_timestamps(self, index: dict, repo_path: Path) -> None:
         """Compute git timestamps for functions.
@@ -774,6 +863,11 @@ class PythonSCIPIndexer(BaseIndexer):
                 "scip-python indexing timed out after 10 minutes. "
                 "Try indexing a smaller subset of the project."
             ) from e
+        except KeyboardInterrupt:
+            # Clean up and re-raise to propagate to command layer
+            if scip_file.exists():
+                scip_file.unlink()
+            raise
         except Exception:
             if scip_file.exists():
                 scip_file.unlink()
