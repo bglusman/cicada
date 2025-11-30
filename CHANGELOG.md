@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 
+**Erlang Language Support (#183)**
+- Full Erlang code indexing via tree-sitter parsing
+- Extract modules, functions, arity, line numbers, and visibility
+- EDoc extraction with keyword search support (@doc, @param, @returns tags)
+- Erlang notation formatting (module:func/arity)
+- Automatic language detection via rebar.config, erlang.mk, or src/*.erl
+- Tested on PURITY and cowboy
+
+**CLI Tool Execution (#202)**
+- Add `cicada run [tool]` command to execute all MCP tools from CLI
+- Tools can be run identically to their MCP behavior directly from command line
+
+**Universal Visibility Field (#205)**
+- Add normalized 'visibility' field ('public'/'private') separate from language-specific 'type' field
+- Enables consistent public/private classification across all supported languages
+- Backward compatible with existing indexes
+
+**Language-Specific Function Formatters (#203)**
+- Add format_function_name() to language formatter interface
+- Elixir: show args if available, otherwise /arity notation
+- Python: show args filtering out self/cls/arg0 implicit params
+- Erlang: use /arity notation (module:func/arity)
+
 **Multithreaded Indexing (#195)**
 - Parallel file processing during indexing for significant performance improvements
 - Faster index builds especially on larger codebases
