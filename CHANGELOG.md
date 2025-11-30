@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2025-11-30
+
+### Fixed
+
+**Incremental Indexing Race Conditions (#206)**
+- Add reindex lock to prevent concurrent indexing in watcher
+- Fix hash path format mismatch (accept both dir and file paths)
+- Compute hashes once at start to fix pending reindex race condition
+- Prevent concurrent repository reindex operations with lock release on errors
+- Eliminate race conditions by computing file hashes once at start and reusing them
+
+**Co-change Analysis Performance (#200)**
+- Fix performance explosion in co-change analysis
+- Optimized algorithm to prevent exponential time complexity
+
+**Legacy Path References (#197)**
+- Fix legacy .cicada/index.json path references
+- Update indexer.py CLI to use get_index_path() for centralized storage
+
+**Watcher Language Detection (#199)**
+- Fix watcher to use LanguageRegistry.get_indexer() based on detected project language
+- Remove forced version mismatch reindexing
+
+### Improvements
+
+**Partial SCIP Indexing (#206)**
+- Add --target-only support for partial SCIP indexing on changed directories
+- Skip keyword extraction and timestamp computation for unchanged modules
+- Copy existing keywords/timestamps from previous index for unchanged files
+- Compute minimal common target directory for changed Python files
+- Add verbose logging for incremental indexing with reused data statistics
+
+**Test Infrastructure (#201, #204)**
+- Sandbox test targets to avoid modifying global cicada installation
+- Clean up long-running tests to improve CI performance
+- Update and extend Python indexer tests for hash-based change detection
+
+**Automatic Fallback Searches (#198)**
+- When a function search fails, automatically try relaxed searches
+- Without module qualifier, without arity constraint, or private function variant
+- Results include notes explaining which fallback was used
+- Improved semantic search suggestions by splitting function names into keywords
+
 ### Features
 
 **Erlang Language Support (#183)**
@@ -36,14 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel file processing during indexing for significant performance improvements
 - Faster index builds especially on larger codebases
 
-**Automatic Fallback Searches for Function Lookups (#198)**
-- When a function search fails, automatically try relaxed searches:
-  - Without module qualifier (Module.func → func)
-  - Without arity constraint (func/2 → func)
-  - Private function variant (func → _func)
-- Results include notes explaining which fallback was used
-- Improved semantic search suggestions by splitting function names into keywords
-
 **Language-Agnostic Watcher (#199)**
 - Watcher now uses LanguageRegistry to detect project language automatically
 - Renamed ElixirFileEventHandler to SourceFileEventHandler with configurable extensions
@@ -58,18 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extract handler methods from route_tool for better maintainability
 - Net reduction: -670 lines of code
 
-### Fixed
-
-**Watcher Language Detection (#199)**
-- Use LanguageRegistry.get_indexer() based on detected project language instead of hardcoding Elixir
-
-**Version Mismatch Handling (#199)**
-- Version mismatch now shows warning instead of forcing full reindex
-- Continue with incremental indexing even when versions differ
-
-**Legacy Path References (#197)**
-- Update indexer.py CLI to use get_index_path() for centralized storage
-- Default output path now uses ~/.cicada/projects/<hash>/index.json
+### Fixed (from v0.5.1)
 
 **Graceful Shutdown for Ctrl+C (#193)**
 - Fixed graceful shutdown during indexing when interrupted with Ctrl+C
@@ -823,7 +847,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Issues](https://github.com/wende/cicada/issues)
 - [MCP Documentation](https://modelcontextprotocol.io)
 
-[Unreleased]: https://github.com/wende/cicada/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/wende/cicada/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/wende/cicada/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/wende/cicada/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/wende/cicada/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/wende/cicada/compare/v0.4.0...v0.4.2
