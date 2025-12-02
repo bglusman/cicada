@@ -287,6 +287,7 @@ class BaseIndexer(ABC):
             List of skipped phase names (if interrupted)
         """
         skipped_phases: list[str] = []
+        self._start_timing()
 
         # Phase 1: Extract and expand keywords using streaming pipeline (interruptible)
         # Requires extractor; expander is optional (falls back to extraction-only)
