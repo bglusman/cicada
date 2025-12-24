@@ -80,13 +80,61 @@ def detect_project_language(repo_path: Path) -> str:
                 return "typescript"
             return "javascript"
 
+    # Check for Go marker
+    if (repo_path / "go.mod").exists():
+        return "go"
+
+    # Check for JVM language markers (Java, Kotlin, Scala)
+    # Check Scala first (build.sbt is unique to Scala)
+    if (repo_path / "build.sbt").exists():
+        return "scala"
+
+    # Check for Gradle/Maven projects
+    jvm_markers = ["build.gradle", "build.gradle.kts", "pom.xml"]
+    for marker in jvm_markers:
+        if (repo_path / marker).exists():
+            # Check if it's Kotlin (presence of .kt files or kotlin in build file)
+            if any(repo_path.rglob("*.kt")):
+                return "kotlin"
+            return "java"
+
+    # Check for C/C++ markers
+    c_markers = ["CMakeLists.txt", "Makefile", "compile_commands.json"]
+    for marker in c_markers:
+        if (repo_path / marker).exists():
+            # Check if it's C++ or C
+            if any(repo_path.rglob("*.cpp")) or any(repo_path.rglob("*.cc")):
+                return "cpp"
+            if any(repo_path.rglob("*.c")):
+                return "c"
+            # Default to C++ if marker exists but no specific files found
+            return "cpp"
+
+    # Check for Ruby marker
+    if (repo_path / "Gemfile").exists():
+        return "ruby"
+
+    # Check for C#/VB (.NET) markers
+    if any(repo_path.glob("*.sln")) or any(repo_path.glob("*.csproj")):
+        return "csharp"
+    if any(repo_path.glob("*.vbproj")):
+        return "vb"
+
+    # Check for Dart marker
+    if (repo_path / "pubspec.yaml").exists():
+        return "dart"
+
+    # Check for PHP marker
+    if (repo_path / "composer.json").exists():
+        return "php"
+
     # No recognized language
     raise ValueError(
         f"Could not detect project language in {repo_path}\n"
-        "Expected Python markers (pyproject.toml, setup.py, etc.), "
-        "Elixir marker (mix.exs), Rust marker (Cargo.toml), "
-        "Erlang markers (rebar.config, src/*.erl), "
-        "or TypeScript/JavaScript markers"
+        "Expected one of: Python (pyproject.toml), Elixir (mix.exs), Rust (Cargo.toml), "
+        "Erlang (rebar.config), TypeScript/JavaScript (package.json), Go (go.mod), "
+        "Java/Kotlin (build.gradle), Scala (build.sbt), C/C++ (CMakeLists.txt/Makefile), "
+        "Ruby (Gemfile), C# (*.csproj), Dart (pubspec.yaml), PHP (composer.json)"
     )
 
 
