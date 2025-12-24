@@ -1294,6 +1294,12 @@ class SCIPConverter:
                 name = descriptor
             return name
 
+        # Handle Rust impl blocks: impl#[Type]method(). or impl#[Type][Trait]method().
+        # Extract just the method name after the last ]
+        impl_match = re.match(r"impl#(?:\[[^\]]+\])+([^(]+)\(\)", descriptor)
+        if impl_match:
+            return impl_match.group(1)
+
         # Python and other languages: use () for callables
         # For classes (ending with #), remove # and get last / component
         if descriptor.endswith("#"):
@@ -1323,15 +1329,20 @@ class SCIPConverter:
         """
         Extract parent symbol from a child symbol.
 
-        For example:
-        scip-python python myproject 1.0 mymodule/MyClass#method().
-        Returns:
-        scip-python python myproject 1.0 mymodule/MyClass#
+        For Python:
+            scip-python python myproject 1.0 mymodule/MyClass#method().
+            Returns: scip-python python myproject 1.0 mymodule/MyClass#
+
+        For Rust impl blocks:
+            rust-analyzer cargo pkg 0.1.0 impl#[Calculator]new().
+            Returns: rust-analyzer cargo pkg 0.1.0 Calculator#
+
+            rust-analyzer cargo pkg 0.1.0 impl#[Calculator][Displayable]format().
+            Returns: rust-analyzer cargo pkg 0.1.0 Calculator#
         """
         if "#" not in symbol:
             return None
 
-        # Remove the last component after #
         parts = symbol.split()
         if len(parts) < 5:
             return None
@@ -1340,7 +1351,16 @@ class SCIPConverter:
         if "#" not in descriptor:
             return None
 
-        # Get everything before the last #method part
+        # Handle Rust impl blocks: impl#[Type]method(). or impl#[Type][Trait]method().
+        # The type is in brackets after impl#
+        impl_match = re.match(r"impl#\[([^\]]+)\]", descriptor)
+        if impl_match:
+            # Extract the type name from brackets (e.g., "Calculator" from "impl#[Calculator]")
+            type_name = impl_match.group(1)
+            parent_descriptor = f"{type_name}#"
+            return " ".join(parts[:4] + [parent_descriptor])
+
+        # Standard Python/TypeScript pattern: get everything before the last #method part
         descriptor_parts = descriptor.split("#")
         if len(descriptor_parts) < 2:
             return None
