@@ -58,6 +58,30 @@ if [ -d "tests/fixtures/sample_typescript" ]; then
     popd > /dev/null
 fi
 
+# Generate Rust SCIP index if sample_rust exists and rust-analyzer is available
+if [ -d "tests/fixtures/sample_rust" ]; then
+    if command -v rust-analyzer >/dev/null 2>&1; then
+        echo "Generating Rust SCIP index..."
+        pushd tests/fixtures/sample_rust > /dev/null
+
+        # Generate SCIP index
+        rust-analyzer scip . --output index.scip 2>/dev/null || {
+            echo "⚠ rust-analyzer scip failed (may need 'rustup component add rust-analyzer')"
+        }
+
+        # Verify index was created
+        if [ -f "index.scip" ]; then
+            echo "✓ Rust SCIP index generated successfully"
+        else
+            echo "⚠ Rust SCIP index not generated (tests will be skipped)"
+        fi
+
+        popd > /dev/null
+    else
+        echo "⚠ rust-analyzer not found, skipping Rust SCIP index generation"
+    fi
+fi
+
 # Create config.yaml for acceptance tests (now uses centralized storage)
 echo "Creating config for test fixtures..."
 # Get storage directory hash
