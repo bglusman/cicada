@@ -1,6 +1,5 @@
 # Base Dockerfile for Cicada testing
-# Minimal Python environment with uv and cicada source
-# Uses `uv run` to execute cicada without installing dependencies
+# Minimal Python environment with Cicada pre-installed
 
 FROM python:3.11-slim
 
@@ -14,11 +13,17 @@ RUN apt-get update && apt-get install -y \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Copy Cicada source
+# Copy Cicada source and install dependencies
 WORKDIR /cicada
 COPY . .
 
-# Don't install - just use `uv run cicada` which will install on demand
+# Install Cicada dependencies (this runs during image build)
+# --no-dev: Skip dev dependencies (pytest, ruff, black, etc.)
+# Note: This also skips [ml] extras (keybert, gensim), which is fine for --fast tier
+RUN uv sync --no-dev
+
+# Add cicada to PATH
+ENV PATH="/cicada/.venv/bin:$PATH"
 
 WORKDIR /workspace
 

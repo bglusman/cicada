@@ -53,10 +53,13 @@ class KeyBERTExtractor(BaseKeywordExtractor):
                 KeyBERTExtractor._KeyBERT = KeyBERT
             except ImportError as e:
                 raise ImportError(
-                    "KeyBERT is not installed. Install it with:\n"
-                    "  uv add keybert\n"
+                    "KeyBERT is not installed. This is required for --max tier (BERT extraction).\n"
+                    "Install ML dependencies with:\n"
+                    "  uv tool install cicada-mcp[ml]\n"
                     "or\n"
-                    "  pip install keybert"
+                    "  pip install 'cicada-mcp[ml]'\n"
+                    "\n"
+                    "Or switch to --fast tier (no ML dependencies required)"
                 ) from e
 
         # Initialize KeyBERT with the model

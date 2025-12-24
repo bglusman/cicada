@@ -156,8 +156,13 @@ class KeywordExpander:
             import gensim.downloader as api
         except ImportError as e:
             raise ImportError(
-                "gensim is required for embedding-based expansion. "
-                "Install with: pip install gensim"
+                f"gensim is not installed. This is required for {self.expansion_type} expansion (--regular and --max tiers).\n"
+                "Install ML dependencies with:\n"
+                "  uv tool install cicada-mcp[ml]\n"
+                "or\n"
+                "  pip install 'cicada-mcp[ml]'\n"
+                "\n"
+                "Or switch to --fast tier (no ML dependencies required)"
             ) from e
 
         # Get model configuration
