@@ -30,6 +30,7 @@ test_language() {
     local fixture_name=$2
     local fixture_path="$FIXTURES_DIR/$fixture_name"
 
+    echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Testing: $lang_name"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -40,36 +41,28 @@ test_language() {
         return 1
     fi
 
-    # Run test in Docker
+    # Run test in Docker with live output
     echo "Running in clean Docker container..."
+    echo ""
 
-    # Copy fixture to container and try to index
+    # Save output to both terminal and file
     docker run --rm \
         -v "$fixture_path:/workspace/project:ro" \
         cicada-base \
         bash -c "
             cd /workspace/project && \
             python -m cicada claude --fast 2>&1 || true
-        " > /tmp/cicada-test-$fixture_name.log 2>&1
+        " 2>&1 | tee /tmp/cicada-test-$fixture_name.log
 
     # Check results
+    echo ""
     if grep -q "Indexed.*files" /tmp/cicada-test-$fixture_name.log; then
         indexed_line=$(grep "Indexed.*files" /tmp/cicada-test-$fixture_name.log)
         echo -e "${GREEN}✅ SUCCESS: $indexed_line${NC}"
     else
-        # Show the error
-        echo -e "${RED}❌ FAILED${NC}"
-        echo ""
-        echo "Error output:"
-        echo "----------------------------------------"
-        grep -i "error\|failed\|not found\|no such" /tmp/cicada-test-$fixture_name.log | head -10 || \
-            tail -15 /tmp/cicada-test-$fixture_name.log
-        echo "----------------------------------------"
-        echo ""
+        echo -e "${RED}❌ FAILED - see output above${NC}"
         echo "Full log saved to: /tmp/cicada-test-$fixture_name.log"
     fi
-
-    echo ""
 }
 
 # Test all languages
