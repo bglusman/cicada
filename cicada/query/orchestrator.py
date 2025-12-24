@@ -898,7 +898,10 @@ class QueryOrchestrator:
         return variants[: QueryConfig.MAX_QUERY_VARIANTS]
 
     def _find_related_terms(
-        self, query: str, max_terms: int = QueryConfig.MAX_RELATED_TERMS
+        self,
+        query: str,
+        max_terms: int = QueryConfig.MAX_RELATED_TERMS,
+        match_source: str = "all",
     ) -> list[str]:
         """
         Find related terms from the index using simple string similarity.
@@ -906,6 +909,7 @@ class QueryOrchestrator:
         Args:
             query: Query string
             max_terms: Maximum number of related terms to return
+            match_source: Filter by keyword source ('all', 'docs', 'strings', 'comments')
 
         Returns:
             List of related terms found in the index
@@ -913,19 +917,24 @@ class QueryOrchestrator:
         query_lower = query.lower()
         related = []
 
-        # Collect all keywords from the index
+        # Collect keywords from the index based on match_source filter
         all_keywords = set()
         for module in self.index.get("modules", {}).values():
-            if module.get("keywords"):
+            # Only collect keywords from the relevant source
+            if match_source in ["all", "docs"] and module.get("keywords"):
                 all_keywords.update(k.lower() for k in module["keywords"])
-            if module.get("string_keywords"):
+            if match_source in ["all", "strings"] and module.get("string_keywords"):
                 all_keywords.update(k.lower() for k in module["string_keywords"])
+            if match_source in ["all", "comments"] and module.get("comment_keywords"):
+                all_keywords.update(k.lower() for k in module["comment_keywords"])
 
             for func in module.get("functions", []):
-                if func.get("keywords"):
+                if match_source in ["all", "docs"] and func.get("keywords"):
                     all_keywords.update(k.lower() for k in func["keywords"])
-                if func.get("string_keywords"):
+                if match_source in ["all", "strings"] and func.get("string_keywords"):
                     all_keywords.update(k.lower() for k in func["string_keywords"])
+                if match_source in ["all", "comments"] and func.get("comment_keywords"):
+                    all_keywords.update(k.lower() for k in func["comment_keywords"])
 
         # Find terms with simple similarity (substring match or character overlap)
         for keyword in all_keywords:
@@ -971,8 +980,9 @@ class QueryOrchestrator:
         if variants:
             suggestions.append(f"Try variants: {', '.join(f'`{v}`' for v in variants)}")
 
-        # 2. Find related terms from index
-        related = self._find_related_terms(query_str)
+        # 2. Find related terms from index (respecting match_source filter)
+        match_source = filters_applied.get("match_source", "all")
+        related = self._find_related_terms(query_str, match_source=match_source)
         if related:
             suggestions.append(f"Related terms in codebase: {', '.join(f'`{t}`' for t in related)}")
 
@@ -1078,6 +1088,7 @@ class QueryOrchestrator:
                 "scope": options.scope,
                 "recent": options.recent,
                 "result_type": options.result_type,
+                "match_source": options.match_source,
                 "glob": options.glob,
             }
             suggestions = self._generate_zero_result_suggestions(query, filters_applied)

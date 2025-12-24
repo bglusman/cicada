@@ -183,7 +183,7 @@ class PythonSCIPIndexer(BaseIndexer):
             repo_path=str(repo_path),
             output_path=str(output_path),
             extract_keywords=True,
-            extract_string_keywords=False,
+            extract_string_keywords=True,  # Enable string keyword extraction
             compute_timestamps=True,  # Enabled by default for timestamp tracking
             extract_cochange=False,
             force_full=force,
