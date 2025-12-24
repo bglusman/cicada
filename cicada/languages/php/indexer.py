@@ -37,8 +37,17 @@ class PhpSCIPIndexer(GenericSCIPIndexer):
 
     def _run_scip_indexer(self, repo_path: Path) -> Path:
         """Run scip-php indexer."""
-        cmd = ["scip-php", "index", "--output", "index.scip"]
+        import shutil
+
         scip_file = repo_path / "index.scip"
+
+        # Use global scip-php (local vendor/bin version has dependency issues)
+        if shutil.which("scip-php"):
+            cmd = ["scip-php", "index", "--output", "index.scip"]
+        else:
+            raise RuntimeError(
+                "scip-php not found. Install via: git clone https://github.com/davidrjenni/scip-php && cd scip-php && composer install"
+            )
 
         return self._run_scip_command(
             repo_path=repo_path, command=cmd, output_path=scip_file, timeout=600
