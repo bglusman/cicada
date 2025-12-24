@@ -167,7 +167,7 @@ class TestTypeScriptFilters:
     def test_scope_filter_all(self, typescript_index):
         """Test scope='all' returns both public and private functions."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("calculator", scope="all", filter_type="all")
+        result = orchestrator.execute_query("calculator", scope="all", result_type="all")
 
         # Protocol validation: returns string without errors
         assert isinstance(result, str)
@@ -176,7 +176,7 @@ class TestTypeScriptFilters:
     def test_scope_filter_public(self, typescript_index):
         """Test scope='public' filters to public functions only."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("calculator", scope="public", filter_type="functions")
+        result = orchestrator.execute_query("calculator", scope="public", result_type="functions")
 
         # Verify filter behavior: no private functions in results
         assert isinstance(result, str)
@@ -186,7 +186,7 @@ class TestTypeScriptFilters:
     def test_scope_filter_private(self, typescript_index):
         """Test scope='private' filters to private functions only."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("private", scope="private", filter_type="functions")
+        result = orchestrator.execute_query("private", scope="private", result_type="functions")
 
         # Verify filter behavior: protocol-level validation
         assert isinstance(result, str)
@@ -195,10 +195,10 @@ class TestTypeScriptFilters:
         if "Function:" in result and "Found: 0" not in result:
             assert "Private" in result or "_" in result
 
-    def test_filter_type_modules(self, typescript_index):
-        """Test filter_type='modules' returns only modules."""
+    def test_result_type_modules(self, typescript_index):
+        """Test result_type='modules' returns only modules."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("calculator", filter_type="modules")
+        result = orchestrator.execute_query("calculator", result_type="modules")
 
         # Verify filter behavior: no function-only results (no () in identifiers)
         assert isinstance(result, str)
@@ -210,10 +210,10 @@ class TestTypeScriptFilters:
             # Some format variations okay, but should be primarily module results
             assert len(function_headers) == 0 or "Module:" in result
 
-    def test_filter_type_functions(self, typescript_index):
-        """Test filter_type='functions' returns only functions."""
+    def test_result_type_functions(self, typescript_index):
+        """Test result_type='functions' returns only functions."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("add", filter_type="functions")
+        result = orchestrator.execute_query("add", result_type="functions")
 
         # Verify filter behavior: should have function results or empty
         assert isinstance(result, str)
@@ -222,10 +222,10 @@ class TestTypeScriptFilters:
             # Should have function indicators
             assert "Function:" in result or "add(" in result.lower() or "Query:" in result
 
-    def test_filter_type_all(self, typescript_index):
-        """Test filter_type='all' returns both modules and functions."""
+    def test_result_type_all(self, typescript_index):
+        """Test result_type='all' returns both modules and functions."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("calculator", filter_type="all")
+        result = orchestrator.execute_query("calculator", result_type="all")
 
         # Protocol validation: returns string without errors
         assert isinstance(result, str)
@@ -259,9 +259,9 @@ class TestTypeScriptFilters:
         assert "Query:" in result
 
     def test_path_pattern_filter(self, typescript_index):
-        """Test path_pattern glob filtering."""
+        """Test glob filtering."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("add", path_pattern="*.ts")
+        result = orchestrator.execute_query("add", glob="*.ts")
 
         # Verify filter behavior: all paths should be .ts files
         assert isinstance(result, str)
@@ -273,9 +273,9 @@ class TestTypeScriptFilters:
             assert len(non_ts_paths) == 0  # No non-.ts paths should appear
 
     def test_path_pattern_exclude(self, typescript_index):
-        """Test path_pattern exclusion."""
+        """Test glob exclusion."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("calculator", path_pattern="!**/test/**")
+        result = orchestrator.execute_query("calculator", glob="!**/test/**")
 
         # Verify filter behavior: no test/ paths should appear
         assert isinstance(result, str)
@@ -287,7 +287,7 @@ class TestTypeScriptFilters:
     def test_arity_filter(self, typescript_index):
         """Test arity filter for function parameters."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("add", arity=2, filter_type="functions")
+        result = orchestrator.execute_query("add", arity=2, result_type="functions")
 
         # Protocol validation: arity filter doesn't crash
         assert isinstance(result, str)
@@ -296,7 +296,7 @@ class TestTypeScriptFilters:
     def test_arity_filter_zero(self, typescript_index):
         """Test arity=0 for zero-parameter functions."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("*", arity=0, filter_type="functions")
+        result = orchestrator.execute_query("*", arity=0, result_type="functions")
 
         # Protocol validation: arity=0 filter doesn't crash
         assert isinstance(result, str)
@@ -466,10 +466,10 @@ class TestTypeScriptEdgeCases:
 class TestTypeScriptCombinedFilters:
     """Test combinations of multiple filters."""
 
-    def test_scope_and_filter_type(self, typescript_index):
-        """Test scope + filter_type combination."""
+    def test_scope_and_result_type(self, typescript_index):
+        """Test scope + result_type combination."""
         orchestrator = QueryOrchestrator(typescript_index)
-        result = orchestrator.execute_query("calculator", scope="public", filter_type="functions")
+        result = orchestrator.execute_query("calculator", scope="public", result_type="functions")
 
         # Verify multiple filters: no private functions should appear
         assert isinstance(result, str)
@@ -484,11 +484,11 @@ class TestTypeScriptCombinedFilters:
         assert isinstance(result, str)
         assert "Query:" in result
 
-    def test_filter_type_and_path_pattern(self, typescript_index):
-        """Test filter_type + path_pattern combination."""
+    def test_result_type_and_glob(self, typescript_index):
+        """Test result_type + glob combination."""
         orchestrator = QueryOrchestrator(typescript_index)
         result = orchestrator.execute_query(
-            "add", filter_type="functions", path_pattern="operations.ts"
+            "add", result_type="functions", glob="operations.ts"
         )
 
         # Verify multiple filters: if paths shown, only operations.ts should appear
@@ -514,9 +514,9 @@ class TestTypeScriptCombinedFilters:
         result = orchestrator.execute_query(
             "add",
             scope="public",
-            filter_type="functions",
+            result_type="functions",
             match_source="docs",
-            path_pattern="*.ts",
+            glob="*.ts",
             arity=2,
             max_results=5,
         )

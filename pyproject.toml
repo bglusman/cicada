@@ -58,6 +58,7 @@ dependencies = [
     "watchdog>=3.0.0",
     "protobuf>=4.0.0",  # Required for SCIP (language-agnostic code indexing)
     "tree-sitter-language-pack>=0.13.0",  # Multi-language tree-sitter bindings (Erlang, etc.)
+    "pathspec>=0.12.0",  # Gitignore-style path matching for generic file indexing
 ]
 
 [project.urls]

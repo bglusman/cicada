@@ -70,10 +70,19 @@ class TestQueryToolValidation:
             ),
             ({"query": "auth", "scope": "internal"}, "'scope' must be one of"),
             ({"query": "auth", "recent": "yes"}, "'recent' must be a boolean"),
-            ({"query": "auth", "filter_type": "classes"}, "'filter_type' must be one of"),
+            ({"query": "auth", "result_type": "classes"}, "'result_type' must be one of"),
             ({"query": "auth", "match_source": "code"}, "'match_source' must be one of"),
             ({"query": "auth", "max_results": 0}, "'max_results' must be a positive integer"),
             ({"query": "auth", "show_snippets": "true"}, "'show_snippets' must be a boolean"),
+            ({"query": "auth", "offset": -1}, "'offset' must be a non-negative integer"),
+            ({"query": "auth", "offset": "1"}, "'offset' must be a non-negative integer"),
+            ({"query": "auth", "context_lines": -1}, "'context_lines' must be a non-negative integer"),
+            ({"query": "auth", "context_lines": "2"}, "'context_lines' must be a non-negative integer"),
+            ({"query": "auth", "context_before": -1}, "'context_before' must be a non-negative integer"),
+            ({"query": "auth", "context_before": "3"}, "'context_before' must be a non-negative integer"),
+            ({"query": "auth", "context_after": -1}, "'context_after' must be a non-negative integer"),
+            ({"query": "auth", "context_after": "3"}, "'context_after' must be a non-negative integer"),
+            ({"query": "auth", "regex": True}, "'regex' parameter is not yet implemented"),
         ],
     )
     @pytest.mark.asyncio
@@ -111,10 +120,10 @@ class TestQueryToolExecution:
                     "query": ["auth"],
                     "scope": "public",
                     "recent": True,
-                    "filter_type": "modules",
+                    "result_type": "modules",
                     "match_source": "docs",
                     "max_results": 5,
-                    "path_pattern": "lib/**",
+                    "glob": "lib/**",
                     "show_snippets": True,
                 },
             )
@@ -127,11 +136,158 @@ class TestQueryToolExecution:
             "query": ["auth"],
             "scope": "public",
             "recent": True,
-            "filter_type": "modules",
+            "result_type": "modules",
             "match_source": "docs",
             "max_results": 5,
-            "path_pattern": "lib/**",
+            "glob": "lib/**",
             "show_snippets": True,
             "verbose": False,
+            "offset": 0,
+            "context_lines": 2,
+            "context_before": None,
+            "context_after": None,
         }
         assert FakeOrchestrator.last_index == test_server.index_manager.index
+
+    @pytest.mark.asyncio
+    async def test_query_with_comments_match_source(self, test_server):
+        """Test that match_source='comments' is accepted and passed through."""
+        call_args = {}
+
+        class FakeOrchestrator:
+            def __init__(self, index):
+                pass
+
+            def execute_query(self, **kwargs):
+                nonlocal call_args
+                call_args |= kwargs
+                return "query result"
+
+        with patch("cicada.query.QueryOrchestrator", FakeOrchestrator):
+            result = await test_server.call_tool(
+                "query",
+                {
+                    "query": "TODO",
+                    "match_source": "comments",
+                },
+            )
+
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert result[0].text == "query result"
+        assert call_args["match_source"] == "comments"
+
+    @pytest.mark.asyncio
+    async def test_query_with_custom_offset_and_context_lines(self, test_server):
+        """Test that custom offset and context_lines are passed through."""
+        call_args = {}
+
+        class FakeOrchestrator:
+            def __init__(self, index):
+                pass
+
+            def execute_query(self, **kwargs):
+                nonlocal call_args
+                call_args |= kwargs
+                return "query result"
+
+        with patch("cicada.query.QueryOrchestrator", FakeOrchestrator):
+            result = await test_server.call_tool(
+                "query",
+                {
+                    "query": "user",
+                    "offset": 10,
+                    "context_lines": 5,
+                },
+            )
+
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert result[0].text == "query result"
+        assert call_args["offset"] == 10
+        assert call_args["context_lines"] == 5
+
+    @pytest.mark.asyncio
+    async def test_query_with_asymmetric_context(self, test_server):
+        """Test that context_before and context_after are passed through."""
+        call_args = {}
+
+        class FakeOrchestrator:
+            def __init__(self, index):
+                pass
+
+            def execute_query(self, **kwargs):
+                nonlocal call_args
+                call_args |= kwargs
+                return "query result"
+
+        with patch("cicada.query.QueryOrchestrator", FakeOrchestrator):
+            result = await test_server.call_tool(
+                "query",
+                {
+                    "query": "user",
+                    "show_snippets": True,
+                    "context_before": 3,
+                    "context_after": 5,
+                },
+            )
+
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert result[0].text == "query result"
+        assert call_args["context_before"] == 3
+        assert call_args["context_after"] == 5
+        # context_lines should still be the default
+        assert call_args["context_lines"] == 2
+        # show_snippets should be auto-enabled
+        assert call_args["show_snippets"] is True
+
+    @pytest.mark.asyncio
+    async def test_context_flags_auto_enable_snippets(self, test_server):
+        """Test that -A, -B, -C flags auto-enable show_snippets."""
+        call_args = {}
+
+        class FakeOrchestrator:
+            def __init__(self, index):
+                pass
+
+            def execute_query(self, **kwargs):
+                nonlocal call_args
+                call_args |= kwargs
+                return "query result"
+
+        # Test -C auto-enables snippets
+        with patch("cicada.query.QueryOrchestrator", FakeOrchestrator):
+            await test_server.call_tool(
+                "query",
+                {"query": "user", "context_lines": 5},
+            )
+        assert call_args["show_snippets"] is True
+        assert call_args["context_lines"] == 5
+
+        # Test -B auto-enables snippets
+        call_args = {}
+        with patch("cicada.query.QueryOrchestrator", FakeOrchestrator):
+            await test_server.call_tool(
+                "query",
+                {"query": "user", "context_before": 3},
+            )
+        assert call_args["show_snippets"] is True
+
+        # Test -A auto-enables snippets
+        call_args = {}
+        with patch("cicada.query.QueryOrchestrator", FakeOrchestrator):
+            await test_server.call_tool(
+                "query",
+                {"query": "user", "context_after": 4},
+            )
+        assert call_args["show_snippets"] is True
+
+        # Test without any context flags - snippets NOT auto-enabled
+        call_args = {}
+        with patch("cicada.query.QueryOrchestrator", FakeOrchestrator):
+            await test_server.call_tool(
+                "query",
+                {"query": "user"},
+            )
+        assert call_args["show_snippets"] is False

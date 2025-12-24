@@ -67,7 +67,7 @@ class TestTypeScriptStructures:
         assert "StringProcessor" in result
 
         # Verify methods of implementation are found
-        result = orchestrator.execute_query("process", filter_type="functions")
+        result = orchestrator.execute_query("process", result_type="functions")
         assert "process" in result
 
     def test_generic_functions(self, typescript_index):
