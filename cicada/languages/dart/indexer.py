@@ -36,8 +36,9 @@ class DartSCIPIndexer(GenericSCIPIndexer):
         return list(self.excluded_dirs)
 
     def _run_scip_indexer(self, repo_path: Path) -> Path:
-        """Run scip-dart indexer."""
-        cmd = ["scip-dart", "index", "--output", "index.scip"]
+        """Run scip_dart indexer."""
+        # scip_dart takes project path as argument, outputs to index.scip
+        cmd = ["scip_dart", "./"]
         scip_file = repo_path / "index.scip"
 
         return self._run_scip_command(

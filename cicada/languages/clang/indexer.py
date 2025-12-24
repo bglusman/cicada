@@ -39,7 +39,9 @@ class _ScipClangIndexerBase(GenericSCIPIndexer):
     def _run_scip_indexer(self, repo_path: Path) -> Path:
         """Run scip-clang indexer."""
         scip_file = repo_path / "index.scip"
-        cmd = ["scip-clang", "--output", str(scip_file)]
+        # scip-clang uses --index-output-path, not --output
+        # It requires a compile_commands.json (from cmake or bear)
+        cmd = ["scip-clang", "--index-output-path", str(scip_file)]
 
         return self._run_scip_command(
             repo_path=repo_path, command=cmd, output_path=scip_file, timeout=600
