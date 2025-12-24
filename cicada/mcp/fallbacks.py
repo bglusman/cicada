@@ -6,11 +6,15 @@ Each fallback strategy transforms the original search patterns and attempts
 to find results with relaxed constraints.
 """
 
+import re
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING, Any
 
 from cicada.mcp.pattern_utils import FunctionPattern
+
+if TYPE_CHECKING:
+    from cicada.query.types import QueryOptions, SearchResult
 
 
 @dataclass
@@ -97,6 +101,8 @@ class PrivateFunctionFallback(FallbackStrategy):
 
 
 # Default fallback strategies in priority order
+# Note: CamelSnakeFallback and PrefixWildcardFallback are defined later in file
+# They're added to this list at module load time (see bottom of file)
 DEFAULT_FUNCTION_FALLBACKS: list[FallbackStrategy] = [
     WithoutModuleFallback(),
     WithoutArityFallback(),
@@ -245,3 +251,186 @@ def apply_module_fallbacks(
             return ModuleFallbackResult(results=results, note=", ".join(notes))
 
     return ModuleFallbackResult(results=[], note=None)
+
+
+# =============================================================================
+# Query Fallback Strategies
+# =============================================================================
+
+
+@dataclass
+class QueryFallbackResult:
+    """Result of a query fallback search attempt."""
+
+    results: list["SearchResult"]
+    note: str | None = None
+
+
+class QueryFallbackStrategy:
+    """Base class for query fallback search strategies."""
+
+    def should_try(self, options: "QueryOptions", context: dict[str, Any]) -> bool:
+        """Return True if this fallback should be attempted."""
+        raise NotImplementedError
+
+    def transform_options(self, options: "QueryOptions") -> "QueryOptions":
+        """Transform options for fallback search."""
+        raise NotImplementedError
+
+    def get_note(self, options: "QueryOptions") -> str:
+        """Return a note describing what fallback was used."""
+        raise NotImplementedError
+
+
+class MatchSourceFallback(QueryFallbackStrategy):
+    """Broaden from specific match_source to 'all' when no results."""
+
+    def should_try(self, options: "QueryOptions", context: dict[str, Any]) -> bool:
+        return options.match_source in ("strings", "docs", "comments")
+
+    def transform_options(self, options: "QueryOptions") -> "QueryOptions":
+        return replace(options, match_source="all")
+
+    def get_note(self, options: "QueryOptions") -> str:
+        return f"no matches in {options.match_source}, showing all sources"
+
+
+class ScopeFallback(QueryFallbackStrategy):
+    """Broaden from public/private scope to 'all' when no results."""
+
+    def should_try(self, options: "QueryOptions", context: dict[str, Any]) -> bool:
+        return options.scope in ("public", "private")
+
+    def transform_options(self, options: "QueryOptions") -> "QueryOptions":
+        return replace(options, scope="all")
+
+    def get_note(self, options: "QueryOptions") -> str:
+        return f"no {options.scope} matches, showing all visibility"
+
+
+class RecentFallback(QueryFallbackStrategy):
+    """Include older code when recent=true returns no results."""
+
+    def should_try(self, options: "QueryOptions", context: dict[str, Any]) -> bool:
+        return options.recent is True
+
+    def transform_options(self, options: "QueryOptions") -> "QueryOptions":
+        return replace(options, recent=False)
+
+    def get_note(self, options: "QueryOptions") -> str:
+        return "no recent matches, showing older code"
+
+
+# Default query fallback strategies in priority order
+DEFAULT_QUERY_FALLBACKS: list[QueryFallbackStrategy] = [
+    MatchSourceFallback(),
+    ScopeFallback(),
+    RecentFallback(),
+]
+
+
+def apply_query_fallbacks(
+    options: "QueryOptions",
+    search_fn: Callable[["QueryOptions"], list["SearchResult"]],
+    context: dict[str, Any] | None = None,
+    strategies: list[QueryFallbackStrategy] | None = None,
+) -> QueryFallbackResult:
+    """
+    Apply query fallback strategies until results are found or all strategies exhausted.
+
+    Args:
+        options: Original query options that returned no results
+        search_fn: Function that executes a search with given options
+        context: Optional context dict
+        strategies: List of fallback strategies to try (defaults to DEFAULT_QUERY_FALLBACKS)
+
+    Returns:
+        QueryFallbackResult with any found results and combined notes
+    """
+    if strategies is None:
+        strategies = DEFAULT_QUERY_FALLBACKS
+    if context is None:
+        context = {}
+
+    notes: list[str] = []
+
+    for strategy in strategies:
+        if not strategy.should_try(options, context):
+            continue
+
+        fallback_options = strategy.transform_options(options)
+        results = search_fn(fallback_options)
+        # Record note for this attempt (whether successful or not)
+        notes.append(strategy.get_note(options))
+        if results:
+            # Return results with accumulated notes from all tried strategies
+            return QueryFallbackResult(results=results, note=", ".join(notes))
+
+    return QueryFallbackResult(results=[], note=None)
+
+
+# =============================================================================
+# Additional Function Fallback Strategies
+# =============================================================================
+
+
+class CamelSnakeFallback(FallbackStrategy):
+    """Try snake_case when camelCase not found (and vice versa)."""
+
+    def should_try(self, patterns: list[FunctionPattern], context: dict[str, Any]) -> bool:
+        # Only for exact names (no wildcards)
+        return any(
+            p.name and "*" not in p.name and (self._is_camel(p.name) or "_" in p.name)
+            for p in patterns
+        )
+
+    def transform_patterns(self, patterns: list[FunctionPattern]) -> list[FunctionPattern]:
+        return [
+            FunctionPattern(
+                file=p.file, module=p.module, name=self._convert_case(p.name), arity=p.arity
+            )
+            for p in patterns
+            if p.name and "*" not in p.name
+        ]
+
+    def _is_camel(self, name: str) -> bool:
+        """Check if name is camelCase."""
+        return any(c.isupper() for c in name[1:]) and "_" not in name
+
+    def _convert_case(self, name: str) -> str:
+        """Convert between camelCase and snake_case."""
+        if "_" in name:
+            # snake_case → camelCase
+            parts = name.split("_")
+            return parts[0] + "".join(p.capitalize() for p in parts[1:])
+        else:
+            # camelCase → snake_case
+            return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+    def get_note(self, patterns: list[FunctionPattern]) -> str:
+        return "showing alternate case style"
+
+
+class PrefixWildcardFallback(FallbackStrategy):
+    """Add wildcards when exact function name not found."""
+
+    def should_try(self, patterns: list[FunctionPattern], context: dict[str, Any]) -> bool:
+        # Only for exact names without wildcards, and at least 4 chars
+        return any(p.name and "*" not in p.name and len(p.name) >= 4 for p in patterns)
+
+    def transform_patterns(self, patterns: list[FunctionPattern]) -> list[FunctionPattern]:
+        return [
+            FunctionPattern(file=p.file, module=p.module, name=f"*{p.name}*", arity=p.arity)
+            for p in patterns
+            if p.name and "*" not in p.name and len(p.name) >= 4
+        ]
+
+    def get_note(self, patterns: list[FunctionPattern]) -> str:
+        return "showing partial name matches"
+
+
+# Add new function fallbacks to the default list
+DEFAULT_FUNCTION_FALLBACKS.extend([
+    CamelSnakeFallback(),
+    PrefixWildcardFallback(),
+])

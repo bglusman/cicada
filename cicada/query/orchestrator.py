@@ -629,6 +629,7 @@ class QueryOrchestrator:
         context_lines: int = 2,
         context_before: int | None = None,
         context_after: int | None = None,
+        fallback_note: str | None = None,
     ) -> str:
         """
         Format final report with results and suggestions.
@@ -644,6 +645,7 @@ class QueryOrchestrator:
             context_lines: Number of context lines in snippets (symmetric, like -C)
             context_before: Override for lines before match (like -B)
             context_after: Override for lines after match (like -A)
+            fallback_note: Note explaining what fallback was applied (if any)
 
         Returns:
             Markdown formatted report
@@ -675,6 +677,10 @@ class QueryOrchestrator:
                 f"Query: {query_display} | {total} result{'s' if total != 1 else ''} "
                 f"(showing {showing})\n\n"
             )
+
+        # Show fallback note if results came from a fallback search
+        if fallback_note and results:
+            lines.append(f"*Note: {fallback_note}*\n\n")
 
         # Results
         for i, result in enumerate(paginated_results, offset + 1):
@@ -1106,7 +1112,27 @@ class QueryOrchestrator:
         # Attach tier information based on score distribution
         ranked_results = self._attach_tier_info(ranked_results)
 
-        # Check for zero results and generate appropriate suggestions
+        # Check for zero results - try fallbacks first, then generate suggestions
+        fallback_note: str | None = None
+        if len(ranked_results) == 0:
+            # Try fallback strategies before giving up
+            from cicada.mcp.fallbacks import apply_query_fallbacks
+
+            def search_with_options(fallback_options: QueryOptions) -> list[SearchResult]:
+                """Execute search with given options."""
+                fallback_raw = self._call_tools(
+                    strategy, fallback_options.result_type, fallback_options.match_source
+                )
+                fallback_filter_config = fallback_options.to_filter_config()
+                fallback_filtered = self._apply_filters(fallback_raw, fallback_filter_config)
+                return self._rank_and_dedupe(fallback_filtered)
+
+            fallback_result = apply_query_fallbacks(options, search_with_options)
+            if fallback_result.results:
+                ranked_results = self._attach_tier_info(fallback_result.results)
+                fallback_note = fallback_result.note
+
+        # Generate suggestions based on final results
         if len(ranked_results) == 0:
             # Generate zero-result suggestions
             filters_applied = {
@@ -1133,4 +1159,5 @@ class QueryOrchestrator:
             options.context_lines,
             options.context_before,
             options.context_after,
+            fallback_note,
         )

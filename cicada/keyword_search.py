@@ -747,6 +747,11 @@ class KeywordSearcher:
                 if doc["type"] == "function":
                     result["function"] = doc["function"]
                     result["arity"] = doc["arity"]
+                    # Add visibility and signature if available
+                    if doc.get("visibility"):
+                        result["visibility"] = doc["visibility"]
+                    if doc.get("signature"):
+                        result["signature"] = doc["signature"]
 
                 # Add documentation if available
                 if doc.get("doc"):
