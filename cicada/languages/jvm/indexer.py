@@ -38,9 +38,30 @@ class _ScipJavaIndexerBase(GenericSCIPIndexer):
         return list(self.excluded_dirs)
 
     def _run_scip_indexer(self, repo_path: Path) -> Path:
-        """Run scip-java indexer."""
-        cmd = ["scip-java", "index", "--output", "index.scip"]
+        """Run scip-java indexer via coursier."""
+        import shutil
+
         scip_file = repo_path / "index.scip"
+
+        # Try to find scip-java in PATH first, then fall back to coursier
+        if shutil.which("scip-java"):
+            cmd = ["scip-java", "index", "--output", "index.scip"]
+        elif shutil.which("coursier") or shutil.which("cs"):
+            # Use coursier to launch scip-java (more reliable)
+            launcher = "coursier" if shutil.which("coursier") else "cs"
+            cmd = [
+                launcher,
+                "launch",
+                "com.sourcegraph:scip-java_2.13:0.11.2",
+                "--",
+                "index",
+                "--output",
+                "index.scip",
+            ]
+        else:
+            raise RuntimeError(
+                "scip-java not found. Install via: brew install coursier/formulas/coursier"
+            )
 
         return self._run_scip_command(
             repo_path=repo_path, command=cmd, output_path=scip_file, timeout=600
