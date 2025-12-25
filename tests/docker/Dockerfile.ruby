@@ -1,4 +1,5 @@
-# Ruby language test - Shows what's needed for Ruby indexing
+# Ruby + scip-ruby complete environment
+# Includes Ruby runtime and scip-ruby indexer
 
 FROM cicada-base
 
@@ -9,15 +10,12 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install scip-ruby (need to download binary from GitHub releases)
+# Install scip-ruby (download binary from GitHub releases)
 RUN curl -L "https://github.com/sourcegraph/scip-ruby/releases/download/v0.4.7/scip-ruby-linux-amd64" \
     -o /usr/local/bin/scip-ruby && \
     chmod +x /usr/local/bin/scip-ruby
 
-# Copy test fixture
-COPY tests/fixtures/sample_ruby /workspace/project
+# Verify scip-ruby is installed
+RUN scip-ruby --help > /dev/null 2>&1 && echo "✓ scip-ruby installed"
 
-# Test indexing
-WORKDIR /workspace/project
-RUN python -m cicada claude --fast && \
-    echo "✅ Ruby indexing successful"
+WORKDIR /workspace

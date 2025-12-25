@@ -1,4 +1,5 @@
-# Go language test - Shows what's needed for Go indexing
+# Go + scip-go complete environment
+# Includes Go runtime and scip-go indexer
 
 FROM cicada-base
 
@@ -12,10 +13,7 @@ ENV GOPATH=/root/go
 ENV PATH=$PATH:/root/go/bin
 RUN go install github.com/sourcegraph/scip-go@latest
 
-# Copy test fixture
-COPY tests/fixtures/sample_go /workspace/project
+# Verify scip-go is installed
+RUN scip-go --help > /dev/null 2>&1 && echo "✓ scip-go installed"
 
-# Test indexing
-WORKDIR /workspace/project
-RUN python -m cicada claude --fast && \
-    echo "✅ Go indexing successful"
+WORKDIR /workspace

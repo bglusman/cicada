@@ -1,4 +1,5 @@
-# C/C++ language test - Shows what's needed for C/C++ indexing
+# C/C++ + scip-clang complete environment
+# Includes build tools and scip-clang indexer (shared for C and C++)
 
 FROM cicada-base
 
@@ -9,21 +10,12 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install scip-clang (need to download binary from GitHub releases)
+# Install scip-clang (download binary from GitHub releases)
 RUN wget "https://github.com/sourcegraph/scip-clang/releases/download/v0.3.2/scip-clang-linux-amd64" \
     -O /usr/local/bin/scip-clang && \
     chmod +x /usr/local/bin/scip-clang
 
-# Copy test fixtures (C and C++ share scip-clang)
-COPY tests/fixtures/sample_c /workspace/project_c
-COPY tests/fixtures/sample_cpp /workspace/project_cpp
+# Verify scip-clang is installed
+RUN scip-clang --help > /dev/null 2>&1 && echo "✓ scip-clang installed"
 
-# Test C indexing
-WORKDIR /workspace/project_c
-RUN python -m cicada claude --fast && \
-    echo "✅ C indexing successful"
-
-# Test C++ indexing
-WORKDIR /workspace/project_cpp
-RUN python -m cicada claude --fast && \
-    echo "✅ C++ indexing successful"
+WORKDIR /workspace

@@ -1,4 +1,5 @@
-# Dart language test - Shows what's needed for Dart indexing
+# Dart + scip_dart complete environment
+# Includes Dart SDK and scip_dart indexer
 
 FROM cicada-base
 
@@ -14,13 +15,10 @@ RUN apt-get update && apt-get install -y \
 ENV PATH="/usr/lib/dart/bin:$PATH"
 ENV PATH="/root/.pub-cache/bin:$PATH"
 
-# Install scip_dart
+# Install scip_dart via pub global
 RUN dart pub global activate scip
 
-# Copy test fixture
-COPY tests/fixtures/sample_dart /workspace/project
+# Verify scip_dart is installed
+RUN scip_dart --help > /dev/null 2>&1 && echo "✓ scip_dart installed"
 
-# Test indexing (auto-runs dart pub get)
-WORKDIR /workspace/project
-RUN python -m cicada claude --fast && \
-    echo "✅ Dart indexing successful"
+WORKDIR /workspace

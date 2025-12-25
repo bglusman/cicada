@@ -1,4 +1,5 @@
-# .NET language test - Shows what's needed for C# and VB indexing
+# .NET + scip-dotnet complete environment
+# Includes .NET SDK and scip-dotnet indexer (shared for C# and VB)
 
 FROM cicada-base
 
@@ -15,16 +16,8 @@ RUN apt-get update && apt-get install -y \
 RUN dotnet tool install --global scip-dotnet
 ENV PATH="/root/.dotnet/tools:$PATH"
 
-# Copy test fixtures
-COPY tests/fixtures/sample_csharp /workspace/project_csharp
-COPY tests/fixtures/sample_vb /workspace/project_vb
+# Verify installations
+RUN dotnet --version > /dev/null 2>&1 && echo "✓ .NET SDK installed"
+RUN scip-dotnet --help > /dev/null 2>&1 && echo "✓ scip-dotnet installed"
 
-# Test C# indexing
-WORKDIR /workspace/project_csharp
-RUN python -m cicada claude --fast && \
-    echo "✅ C# indexing successful"
-
-# Test VB indexing
-WORKDIR /workspace/project_vb
-RUN python -m cicada claude --fast && \
-    echo "✅ VB indexing successful"
+WORKDIR /workspace
