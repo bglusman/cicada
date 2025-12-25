@@ -17,8 +17,8 @@ def mock_detect_language():
 
 
 @pytest.fixture
-def mock_tier_flags():
-    with patch("cicada.commands.validate_tier_flags") as mock:
+def mock_mode_flags():
+    with patch("cicada.commands.validate_mode_flags") as mock:
         yield mock
 
 
@@ -33,7 +33,7 @@ def mock_index_exists():
         yield
 
 
-def test_install_yes_flag(mock_setup, mock_detect_language, mock_tier_flags, mock_index_exists):
+def test_install_yes_flag(mock_setup, mock_detect_language, mock_mode_flags, mock_index_exists):
     args = MagicMock()
     args.repo = "."
     args.yes = True
@@ -48,21 +48,19 @@ def test_install_yes_flag(mock_setup, mock_detect_language, mock_tier_flags, moc
     args.default = False
     args.command = "install"
 
-    # Mock get_extraction_expansion_methods to return None (default)
-    with patch("cicada.commands.get_extraction_expansion_methods", return_value=(None, None)):
-        handle_install(args)
+    handle_install(args)
 
     # Verify setup called with defaults
     mock_setup.assert_called_once()
     pos_args, kw_args = mock_setup.call_args
     assert pos_args[0] == "claude"
-    assert kw_args["extraction_method"] is None  # Default handled by setup
+    assert kw_args["indexing_mode"] == "keywords"
     assert kw_args["index_prs"] is True  # --yes enables PR indexing
     assert kw_args["add_to_claude_md"] is True  # --yes enables Claude docs
 
 
 def test_install_index_prs_flag(
-    mock_setup, mock_detect_language, mock_tier_flags, mock_index_exists
+    mock_setup, mock_detect_language, mock_mode_flags, mock_index_exists
 ):
     args = MagicMock()
     args.repo = "."
@@ -78,15 +76,14 @@ def test_install_index_prs_flag(
     args.default = False
     args.command = "install"
 
-    with patch("cicada.commands.get_extraction_expansion_methods", return_value=(None, None)):
-        handle_install(args)
+    handle_install(args)
 
     call_args = mock_setup.call_args[1]
     assert call_args["index_prs"] is True
 
 
 def test_install_skip_optional_flag(
-    mock_setup, mock_detect_language, mock_tier_flags, mock_index_exists
+    mock_setup, mock_detect_language, mock_mode_flags, mock_index_exists
 ):
     args = MagicMock()
     args.repo = "."
@@ -102,8 +99,7 @@ def test_install_skip_optional_flag(
     args.default = False
     args.command = "install"
 
-    with patch("cicada.commands.get_extraction_expansion_methods", return_value=(None, None)):
-        handle_install(args)
+    handle_install(args)
 
     call_args = mock_setup.call_args[1]
     assert call_args["index_prs"] is False

@@ -141,7 +141,7 @@ class TestFileWatcher:
         assert watcher.repo_path == elixir_repo
         assert watcher.debounce_seconds == 2.0
         assert watcher.verbose is True
-        assert watcher.tier == "regular"
+        assert watcher.indexing_mode == "keywords"
         assert watcher.running is False
         assert watcher.observer is None
         assert watcher.indexer is None
@@ -152,12 +152,12 @@ class TestFileWatcher:
             repo_path=str(elixir_repo),
             debounce_seconds=5.0,
             verbose=False,
-            tier="fast",
+            indexing_mode="embeddings",
         )
 
         assert watcher.debounce_seconds == 5.0
         assert watcher.verbose is False
-        assert watcher.tier == "fast"
+        assert watcher.indexing_mode == "embeddings"
 
     def test_on_file_change_starts_debounce_timer(self, elixir_repo):
         """Test that file changes start a debounce timer"""
