@@ -21,7 +21,9 @@ class TestKeyBERTExtractorInitialization:
         """Test that missing KeyBERT raises helpful ImportError"""
         with patch.dict("sys.modules", {"keybert": None}):
             with patch("builtins.__import__", side_effect=ImportError("No module")):
-                with pytest.raises(ImportError, match=r"KeyBERT is not installed"):
+                with pytest.raises(
+                    ImportError, match=r"KeyBERT is not installed[\s\S]*cicada-mcp\[ml\]"
+                ):
                     KeyBERTExtractor(verbose=False)
 
     def test_initialization_success(self):
