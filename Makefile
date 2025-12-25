@@ -35,11 +35,12 @@ dev:
 	@echo "4. Clearing Python bytecode cache..."
 	@find ~/.local/share/uv/tools/cicada-mcp -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@find ~/.local/share/uv/tools/cicada-mcp -type f -name "*.pyc" -delete 2>/dev/null || true
-	@echo "5. Installing from fresh build..."
-	@uv tool install --reinstall dist/cicada_mcp-*-py3-none-any.whl
+	@echo "5. Installing from fresh build (with cicada-scip)..."
+	@uv tool install --reinstall dist/cicada_mcp-*-py3-none-any.whl --with ./packages/cicada-scip
 	@echo "cicada installed from fresh build"
 	@echo "  Commands: cicada, cicada-mcp, cicada-server"
 	@echo "  Installed from: $(PWD)/dist/"
+	@echo "  Includes: cicada-scip (SCIP language support)"
 
 # Install dependencies only
 install-deps:
@@ -51,9 +52,10 @@ install-deps:
 install: install-deps
 	@echo ""
 	@echo "Installing cicada tool to ~/.local/bin/..."
-	@uv tool install --editable . --force
+	@uv tool install --editable . --force --with ./packages/cicada-scip
 	@echo "cicada installed in editable mode"
 	@echo "  Command 'cicada' now uses code from $(PWD)"
+	@echo "  Includes: cicada-scip (SCIP language support)"
 
 
 uninstall: clean
