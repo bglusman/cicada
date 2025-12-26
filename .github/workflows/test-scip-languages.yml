@@ -3,17 +3,77 @@ name: SCIP Language Tests
 on:
   push:
     branches: [ main, dev ]
+    paths:
+      - 'packages/cicada-scip/**'
+      - 'tests/fixtures/sample_*/**'
+      - 'tests/docker/**'
+      - '.github/workflows/test-scip-languages.yml'
   pull_request:
     branches: [ main, dev ]
+    paths:
+      - 'packages/cicada-scip/**'
+      - 'tests/fixtures/sample_*/**'
+      - 'tests/docker/**'
+      - '.github/workflows/test-scip-languages.yml'
   workflow_dispatch:
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      languages: ${{ steps.filter.outputs.languages }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect which languages to test
+        id: filter
+        run: |
+          # Get changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Check if SCIP core code changed (run all languages)
+          if echo "$CHANGED_FILES" | grep -qE '^packages/cicada-scip/|^tests/docker/|^\.github/workflows/test-scip-languages\.yml'; then
+            echo "SCIP core code changed - testing all languages"
+            echo 'languages=["go", "java", "scala", "ruby", "dart", "c", "cpp", "csharp", "vb"]' >> $GITHUB_OUTPUT
+          else
+            # Check which specific fixtures changed
+            LANGS='['
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_go/'; then LANGS+='"go",'; fi
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_java/'; then LANGS+='"java",'; fi
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_scala/'; then LANGS+='"scala",'; fi
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_ruby/'; then LANGS+='"ruby",'; fi
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_dart/'; then LANGS+='"dart",'; fi
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_c/'; then LANGS+='"c",'; fi
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_cpp/'; then LANGS+='"cpp",'; fi
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_csharp/'; then LANGS+='"csharp",'; fi
+            if echo "$CHANGED_FILES" | grep -q '^tests/fixtures/sample_vb/'; then LANGS+='"vb",'; fi
+            LANGS=${LANGS%,}']'
+
+            if [ "$LANGS" = "]" ]; then
+              echo "No relevant changes detected"
+              LANGS='[]'
+            else
+              echo "Testing specific languages: $LANGS"
+            fi
+
+            echo "languages=$LANGS" >> $GITHUB_OUTPUT
+          fi
+
   test-languages:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.languages != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        language: [go, java, scala, ruby, dart, c, cpp, csharp, vb]
+        language: ${{ fromJson(needs.detect-changes.outputs.languages) }}
         include:
           - language: go
             fixture: sample_go
