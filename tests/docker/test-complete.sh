@@ -77,7 +77,7 @@ for lang_config in "${LANGUAGES[@]}"; do
     docker run --rm \
         -v "$fixture_path:/workspace/project" \
         cicada-base \
-        bash -c "cd /workspace/project && cicada claude --fast 2>&1 || true" \
+        bash -c "cd /workspace/project && cicada claude 2>&1 || true" \
         > /tmp/cicada-phase1-$fixture_name.log 2>&1
 
     # Check for expected failure with clear error
@@ -162,13 +162,13 @@ for lang_config in "${LANGUAGES[@]}"; do
         docker run --rm --platform "$platform" \
             -v "$fixture_path:/workspace/project" \
             "$image_name" \
-            bash -c "cd /workspace/project && cicada claude --fast 2>&1" \
+            bash -c "cd /workspace/project && cicada claude 2>&1" \
             > /tmp/cicada-phase3-$fixture_name.log 2>&1
     else
         docker run --rm \
             -v "$fixture_path:/workspace/project" \
             "$image_name" \
-            bash -c "cd /workspace/project && cicada claude --fast 2>&1" \
+            bash -c "cd /workspace/project && cicada claude 2>&1" \
             > /tmp/cicada-phase3-$fixture_name.log 2>&1
     fi
 

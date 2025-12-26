@@ -42,6 +42,6 @@ docker run --rm -it \
     cicada-base \
     bash -c "
         cd /workspace/project && \
-        echo '=== Running: python -m cicada claude --fast ===' && \
-        python -m cicada claude --fast 2>&1
+        echo '=== Running: python -m cicada claude ===' && \
+        python -m cicada claude 2>&1
     "

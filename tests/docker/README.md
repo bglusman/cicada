@@ -7,7 +7,7 @@ This directory contains end-to-end tests for all SCIP languages in clean Docker 
 These tests are designed to:
 1. **Start from a clean slate** - Base image with only Cicada and git
 2. **Copy a real project** - Use our fixture projects
-3. **Try to index** - Run `cicada claude --fast`
+3. **Try to index** - Run `cicada claude`
 4. **Document what fails** - Capture missing dependencies
 
 ## Quick Start
@@ -46,7 +46,7 @@ Minimal environment:
 Each language test:
 1. Uses the base image
 2. Mounts the fixture directory as read-only
-3. Tries to run `python -m cicada claude --fast`
+3. Tries to run `python -m cicada claude`
 4. Captures output to `/tmp/cicada-test-{language}.log`
 
 ## Expected Failures
@@ -103,7 +103,7 @@ RUN go install github.com/sourcegraph/scip-go@latest
 
 # Test
 COPY tests/fixtures/sample_go /workspace/project
-RUN cd /workspace/project && python -m cicada claude --fast
+RUN cd /workspace/project && python -m cicada claude
 ```
 
 This documents the **minimum required setup** for each language.
