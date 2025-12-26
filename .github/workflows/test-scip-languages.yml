@@ -24,15 +24,18 @@ jobs:
       languages: ${{ steps.filter.outputs.languages }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Detect which languages to test
         id: filter
         run: |
           # Get changed files
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+            git fetch origin ${{ github.event.pull_request.base.ref }}
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
           else
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
           fi
 
           echo "Changed files:"
