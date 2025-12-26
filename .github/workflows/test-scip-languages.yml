@@ -1,0 +1,134 @@
+name: SCIP Language Tests
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: tests/docker/Dockerfile.all-scip
+          tags: cicada-all-scip:latest
+          outputs: type=docker,dest=/tmp/cicada-all-scip.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/cicada-all-scip.tar
+          retention-days: 1
+
+  test-language:
+    needs: build-image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # Run all tests even if some fail
+      matrix:
+        language: [go, java, scala, ruby, dart, c, cpp, csharp, vb]
+        include:
+          - language: go
+            fixture: sample_go
+          - language: java
+            fixture: sample_java
+          - language: scala
+            fixture: sample_scala
+          - language: ruby
+            fixture: sample_ruby
+          - language: dart
+            fixture: sample_dart
+          - language: c
+            fixture: sample_c
+          - language: cpp
+            fixture: sample_cpp
+          - language: csharp
+            fixture: sample_csharp
+          - language: vb
+            fixture: sample_vb
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load --input /tmp/cicada-all-scip.tar
+
+      - name: Test without indexer (graceful failure)
+        id: test-no-deps
+        run: |
+          echo "Testing ${{ matrix.language }} without indexer..."
+          OUTPUT=$(docker run --rm \
+            -v "${{ github.workspace }}/tests/fixtures/${{ matrix.fixture }}:/workspace/project:ro" \
+            -w /workspace/project \
+            cicada-all-scip:latest \
+            cicada claude 2>&1) || true
+
+          echo "Output:"
+          echo "$OUTPUT"
+
+          if echo "$OUTPUT" | grep -qi "not found\|install via"; then
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "✅ Graceful failure detected"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "❌ Unexpected behavior"
+            exit 1
+          fi
+
+      - name: Test with indexer (should succeed)
+        id: test-with-deps
+        # Note: Not using :ro because SCIP indexers need to write index.scip to the project dir
+        run: |
+          echo "Testing ${{ matrix.language }} with indexer enabled..."
+          OUTPUT=$(docker run --rm \
+            -e "SCIP_ENABLE=${{ matrix.language }}" \
+            -v "${{ github.workspace }}/tests/fixtures/${{ matrix.fixture }}:/workspace/project" \
+            -w /workspace/project \
+            cicada-all-scip:latest \
+            cicada claude 2>&1) || true
+
+          echo "Output:"
+          echo "$OUTPUT"
+
+          if echo "$OUTPUT" | grep -qi "indexed.*file"; then
+            INDEXED_LINE=$(echo "$OUTPUT" | grep -i "indexed" | head -1)
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "✅ $INDEXED_LINE"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "❌ Failed to index"
+            exit 1
+          fi
+
+  summary:
+    needs: test-language
+    runs-on: ubuntu-latest
+    if: always()  # Run even if some tests failed
+    steps:
+      - name: Check test results
+        run: |
+          echo "═══════════════════════════════════════════"
+          echo "         SCIP Language Test Summary         "
+          echo "═══════════════════════════════════════════"
+          echo ""
+          echo "All language tests completed."
+          echo "Check individual job results above for per-language status."
