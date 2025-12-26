@@ -134,18 +134,13 @@ ruby       PASS            PASS
 
 ## CI Integration
 
-SCIP language tests run automatically on push and PR via GitHub Actions:
+SCIP language tests run automatically on push and PR via GitHub Actions.
 
-```yaml
-# .github/workflows/test-scip-languages.yml
-```
+The CI workflow (`.github/workflows/test-scip-languages.yml`) installs indexers directly
+on the runner (no Docker) for faster execution. Each language runs as a separate matrix job.
 
-The CI workflow:
-1. Builds the all-in-one Docker image once (with caching)
-2. Tests each language in parallel using a matrix strategy
-3. Reports per-language pass/fail status in the GitHub UI
-
-Each language appears as a separate job, making it easy to see which languages pass or fail.
+**Docker is for local testing** - provides clean isolated environment with PATH manipulation.
+**CI uses direct installation** - faster since runners are already ephemeral.
 
 ## Files
 
