@@ -111,6 +111,10 @@ class GenericSCIPIndexer(BaseIndexer, ABC):
         self,
         repo_path: str,
         output_path: str,
+        extract_keywords: bool = False,  # noqa: ARG002 - interface compatibility
+        extract_string_keywords: bool = False,  # noqa: ARG002 - interface compatibility
+        compute_timestamps: bool = False,  # noqa: ARG002 - interface compatibility
+        extract_cochange: bool = False,  # noqa: ARG002 - interface compatibility
         force_full: bool = False,
         verbose: bool = True,
     ) -> dict:
@@ -123,12 +127,18 @@ class GenericSCIPIndexer(BaseIndexer, ABC):
         3. Converts SCIP output to Cicada format
         4. Saves the raw index
 
-        For enrichment (keywords, timestamps, cochange), use the main
-        cicada package's enrichment pipeline after calling this method.
+        Note: extract_keywords, extract_string_keywords, compute_timestamps,
+        and extract_cochange are accepted for interface compatibility but
+        ignored. For enrichment, use the main cicada package's enrichment
+        pipeline after calling this method.
 
         Args:
             repo_path: Path to repository root
             output_path: Path to save index.json
+            extract_keywords: Ignored - for interface compatibility
+            extract_string_keywords: Ignored - for interface compatibility
+            compute_timestamps: Ignored - for interface compatibility
+            extract_cochange: Ignored - for interface compatibility
             force_full: If True, force full reindex even if up-to-date
             verbose: If True, print detailed progress information
 

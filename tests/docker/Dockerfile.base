@@ -19,8 +19,9 @@ COPY . .
 
 # Install Cicada dependencies (this runs during image build)
 # --no-dev: Skip dev dependencies (pytest, ruff, black, etc.)
+# --extra scip: Include SCIP-based language support (Go, Java, Ruby, etc.)
 # Note: This also skips [ml] extras (keybert, gensim), which is fine for keyword-based indexing
-RUN uv sync --no-dev
+RUN uv sync --no-dev --extra scip
 
 # Add cicada to PATH
 ENV PATH="/cicada/.venv/bin:$PATH"

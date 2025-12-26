@@ -96,6 +96,106 @@ class TestJavaScriptSCIPIndexer:
         call_args = mock_run.call_args
         assert call_args[0][0] == ["npx", "@sourcegraph/scip-typescript", "index"]
 
+    @patch("subprocess.run")
+    def test_run_scip_indexer_creates_jsconfig_when_missing(self, mock_run, indexer, tmp_path):
+        """Should auto-generate jsconfig.json when neither tsconfig nor jsconfig exists."""
+        import json
+
+        # Setup mock
+        mock_run.return_value = Mock(returncode=0, stderr="")
+
+        # Create index.scip file
+        scip_file = tmp_path / "index.scip"
+        scip_file.write_text("mock scip content")
+
+        jsconfig_path = tmp_path / "jsconfig.json"
+        tsconfig_path = tmp_path / "tsconfig.json"
+
+        # Verify no config files exist
+        assert not jsconfig_path.exists()
+        assert not tsconfig_path.exists()
+
+        # Use a flag to capture jsconfig content when it exists
+        jsconfig_content = None
+
+        def capture_jsconfig(*args, **kwargs):
+            nonlocal jsconfig_content
+            if jsconfig_path.exists():
+                with open(jsconfig_path) as f:
+                    jsconfig_content = json.load(f)
+            return Mock(returncode=0, stderr="")
+
+        mock_run.side_effect = capture_jsconfig
+
+        # Run indexer
+        indexer._run_scip_indexer(tmp_path)
+
+        # Verify jsconfig was created during indexing
+        assert jsconfig_content is not None
+        assert jsconfig_content["compilerOptions"]["allowJs"] is True
+        assert "**/*.js" in jsconfig_content["include"]
+        assert "node_modules" in jsconfig_content["exclude"]
+
+        # Verify jsconfig was cleaned up after indexing
+        assert not jsconfig_path.exists()
+
+    @patch("subprocess.run")
+    def test_run_scip_indexer_skips_jsconfig_when_tsconfig_exists(
+        self, mock_run, indexer, tmp_path
+    ):
+        """Should not generate jsconfig.json when tsconfig.json exists."""
+        import json
+
+        # Setup mock
+        mock_run.return_value = Mock(returncode=0, stderr="")
+
+        # Create tsconfig.json
+        tsconfig_path = tmp_path / "tsconfig.json"
+        tsconfig_path.write_text('{"compilerOptions": {}}')
+
+        # Create index.scip file
+        scip_file = tmp_path / "index.scip"
+        scip_file.write_text("mock scip content")
+
+        jsconfig_path = tmp_path / "jsconfig.json"
+
+        # Run indexer
+        indexer._run_scip_indexer(tmp_path)
+
+        # Verify jsconfig was NOT created (tsconfig exists)
+        assert not jsconfig_path.exists()
+        # tsconfig should still exist (not touched)
+        assert tsconfig_path.exists()
+
+    @patch("subprocess.run")
+    def test_run_scip_indexer_skips_jsconfig_when_jsconfig_exists(
+        self, mock_run, indexer, tmp_path
+    ):
+        """Should not regenerate jsconfig.json when it already exists."""
+        import json
+
+        # Setup mock
+        mock_run.return_value = Mock(returncode=0, stderr="")
+
+        # Create existing jsconfig.json with custom content
+        jsconfig_path = tmp_path / "jsconfig.json"
+        original_content = {"compilerOptions": {"custom": True}}
+        with open(jsconfig_path, "w") as f:
+            json.dump(original_content, f)
+
+        # Create index.scip file
+        scip_file = tmp_path / "index.scip"
+        scip_file.write_text("mock scip content")
+
+        # Run indexer
+        indexer._run_scip_indexer(tmp_path)
+
+        # Verify jsconfig was NOT modified
+        assert jsconfig_path.exists()
+        with open(jsconfig_path) as f:
+            content = json.load(f)
+        assert content == original_content
+
 
 class TestJavaScriptLanguageRegistry:
     """Test JavaScript registration in language registry."""
