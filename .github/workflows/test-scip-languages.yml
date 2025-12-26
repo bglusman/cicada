@@ -237,7 +237,12 @@ jobs:
       - name: Test indexing
         run: |
           cd tests/fixtures/${{ matrix.fixture }}
-          uv run cicada claude 2>&1 | tee output.log
+          # Use --no-project for Python to avoid creating a venv in the fixture dir
+          if [ "${{ matrix.language }}" = "python" ]; then
+            uv run --no-project cicada claude 2>&1 | tee output.log
+          else
+            uv run cicada claude 2>&1 | tee output.log
+          fi
 
           # Check for successful indexing
           if grep -qi "indexed.*file" output.log; then
