@@ -105,6 +105,14 @@ jobs:
           chmod +x scip-clang
           sudo mv scip-clang /usr/local/bin/
 
+          # Generate compile_commands.json with absolute paths for scip-clang
+          FIXTURE_DIR="${{ github.workspace }}/tests/fixtures/${{ matrix.fixture }}"
+          if [ "${{ matrix.language }}" = "c" ]; then
+            echo '[{"directory": "'$FIXTURE_DIR'", "file": "calculator.c", "command": "cc -c calculator.c -o calculator.o"}]' > "$FIXTURE_DIR/compile_commands.json"
+          else
+            echo '[{"directory": "'$FIXTURE_DIR'", "file": "calculator.cpp", "command": "c++ -std=c++17 -c calculator.cpp -o calculator.o"}]' > "$FIXTURE_DIR/compile_commands.json"
+          fi
+
       - name: Install .NET indexer
         if: matrix.language == 'csharp' || matrix.language == 'vb'
         run: |
