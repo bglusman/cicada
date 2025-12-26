@@ -7,14 +7,12 @@ on:
       - 'packages/cicada-scip/**'
       - 'tests/fixtures/sample_*/**'
       - 'tests/docker/**'
-      - '.github/workflows/test-scip-languages.yml'
   pull_request:
     branches: [ main, dev ]
     paths:
       - 'packages/cicada-scip/**'
       - 'tests/fixtures/sample_*/**'
       - 'tests/docker/**'
-      - '.github/workflows/test-scip-languages.yml'
   workflow_dispatch:
 
 jobs:
@@ -42,7 +40,7 @@ jobs:
           echo "$CHANGED_FILES"
 
           # Check if SCIP core code changed (run all languages)
-          if echo "$CHANGED_FILES" | grep -qE '^packages/cicada-scip/|^tests/docker/|^\.github/workflows/test-scip-languages\.yml'; then
+          if echo "$CHANGED_FILES" | grep -qE '^packages/cicada-scip/|^tests/docker/'; then
             echo "SCIP core code changed - testing all languages"
             echo 'languages=["go", "java", "scala", "ruby", "dart", "c", "cpp", "csharp", "vb", "python", "typescript", "javascript", "rust"]' >> $GITHUB_OUTPUT
           else
