@@ -470,6 +470,10 @@ class ModuleFormatter:
         if detailed_dependencies:
             result["dependencies"] = detailed_dependencies
 
+        # Add co-change files if present
+        if data.get("cochange_files"):
+            result["cochange_files"] = data["cochange_files"]
+
         return json.dumps(result, indent=2)
 
     @staticmethod
@@ -1129,6 +1133,10 @@ class ModuleFormatter:
             # Add guards if present
             if result["function"].get("guards"):
                 func_entry["guards"] = result["function"]["guards"]
+
+            # Add co-change files if present (from module-level data)
+            if result.get("cochange_files"):
+                func_entry["cochange_files"] = result["cochange_files"]
 
             formatted_results.append(func_entry)
 
