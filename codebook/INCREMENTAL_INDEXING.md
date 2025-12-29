@@ -224,8 +224,79 @@ Incremental indexing includes interrupt safety:
 
 ---
 
+## Watch Mode
+
+Watch mode automatically triggers incremental reindexing whenever files change in your repository. It monitors the filesystem for changes and runs incremental indexing with a configurable debounce interval.
+
+### CLI Usage
+
+```bash
+# Start watching for changes (default 2s debounce)
+cicada watch
+
+# Custom debounce interval
+cicada watch --debounce 5
+
+# Watch with specific indexing mode
+cicada watch --keywords
+cicada watch --embeddings
+
+# Quiet mode (suppress progress output)
+cicada watch --quiet
+```
+
+### How It Works
+
+1. **File Monitoring**: Watches source files for changes using filesystem events
+2. **Debouncing**: Waits for a configurable interval after the last change before reindexing
+3. **Incremental Update**: Only reprocesses changed files using the incremental indexing system
+4. **Background Process**: Can run as a linked background process with the MCP server
+
+### MCP Server Integration
+
+When the MCP server starts, it can automatically spawn a watch process:
+
+```python
+from cicada.watch_manager import start_watch_process, stop_watch_process
+
+# Start watching
+start_watch_process(
+    repo_path="/path/to/repo",
+    indexing_mode="keywords",
+    debounce=2.0
+)
+
+# Stop watching
+stop_watch_process()
+```
+
+### Key Components
+
+| Component | Location | Description |
+|-----------|----------|-------------|
+| `WatchProcessManager` | `cicada/watch_manager.py:20` | Manages the watch subprocess lifecycle |
+| `handle_watch` | `cicada/commands.py:1019` | CLI command handler for `cicada watch` |
+| `start_watch_process` | `cicada/watch_manager.py:291` | Convenience function to start watching |
+| `stop_watch_process` | `cicada/watch_manager.py:319` | Stops the global watch process |
+
+---
+
+## File Reference
+
+| File | Description |
+|------|-------------|
+| `cicada/utils/hash_utils.py` | MD5 hashing and change detection utilities |
+| `cicada/utils/index_utils.py` | Index merging and incremental merge logic |
+| `cicada/indexer.py` | ElixirIndexer with incremental support |
+| `cicada/languages/python/indexer.py` | PythonSCIPIndexer with incremental support |
+| `cicada/languages/erlang/indexer.py` | ErlangIndexer with incremental support |
+| `cicada/parsing/base_indexer.py` | Base class defining incremental interface |
+| `cicada/watch_manager.py` | Watch process management for auto-reindexing |
+| `packages/cicada-core/src/cicada_core/utils/hash_utils.py` | Core package hash utilities |
+
+---
+
 ## Related Features
 
 - **[AST-Level Indexing](AST_INDEXING.md)**: The parsing that incremental indexing accelerates
-- **Watch Mode**: Uses incremental indexing for real-time updates
 - **Keyword Extraction**: Benefits most from incremental indexing due to NLP overhead
