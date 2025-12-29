@@ -314,11 +314,12 @@ class TestIndexRepository:
                 # Verify indexer was fetched for the correct language
                 mock_get_indexer.assert_called_once_with("elixir")
 
-                # Verify incremental_index_repository was called with cochange enabled
+                # Verify incremental_index_repository was called with all features enabled
                 mock_indexer.incremental_index_repository.assert_called_once_with(
                     repo_path=str(mock_repo),
                     output_path=str(index_path),
                     extract_keywords=True,
+                    extract_string_keywords=True,
                     compute_timestamps=True,
                     extract_cochange=True,
                     force_full=False,

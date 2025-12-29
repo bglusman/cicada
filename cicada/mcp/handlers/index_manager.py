@@ -143,16 +143,11 @@ class BackgroundRefreshManager:
         # Cast to Any - concrete indexers have methods not in BaseIndexer
         indexer: Any = cast(Any, LanguageRegistry.get_indexer(language))
 
-        # Get indexing options from config (match original index settings)
-        indexing_config = self.config.get("indexing", {})
-        extract_keywords = indexing_config.get("extract_keywords", False)
-        extract_string_keywords = indexing_config.get("extract_string_keywords", False)
-
         indexer.incremental_index_repository(
             repo_path=str(self.repo_path),
             output_path=str(self.index_path),
-            extract_keywords=extract_keywords,
-            extract_string_keywords=extract_string_keywords,
+            extract_keywords=True,
+            extract_string_keywords=True,
             force_full=False,
             verbose=False,
         )
@@ -196,25 +191,20 @@ class BackgroundRefreshManager:
                 # Cast to Any - concrete indexers have methods not in BaseIndexer
                 indexer: Any = cast(Any, LanguageRegistry.get_indexer(language))
 
-                # Get indexing options from config
-                indexing_config = self.config.get("indexing", {})
-                extract_keywords = indexing_config.get("extract_keywords", False)
-                extract_string_keywords = indexing_config.get("extract_string_keywords", False)
-
                 if force_full:
                     result = indexer.index_repository(
                         repo_path=str(self.repo_path),
                         output_path=str(self.index_path),
-                        extract_keywords=extract_keywords,
-                        extract_string_keywords=extract_string_keywords,
+                        extract_keywords=True,
+                        extract_string_keywords=True,
                         verbose=False,
                     )
                 else:
                     result = indexer.incremental_index_repository(
                         repo_path=str(self.repo_path),
                         output_path=str(self.index_path),
-                        extract_keywords=extract_keywords,
-                        extract_string_keywords=extract_string_keywords,
+                        extract_keywords=True,
+                        extract_string_keywords=True,
                         force_full=False,
                         verbose=False,
                     )
