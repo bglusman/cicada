@@ -437,11 +437,13 @@ class ModuleFormatter:
         # Compact function format - one entry per unique name/arity
         functions = [
             {
+                "name": name,
+                "arity": arity,
                 "signature": SignatureBuilder.build(clauses[0]),
                 "line": clauses[0]["line"],
                 "type": clauses[0]["type"],
             }
-            for (_, _), clauses in sorted(grouped.items())
+            for (name, arity), clauses in sorted(grouped.items())
         ]
 
         # Calculate function counts if not provided
