@@ -9,8 +9,8 @@
 4. TypeScript Support - Experimental support via SCIP
 
 ## Code Indexing
-1. AST-Level Indexing - Extracts module, function, and class definitions with signatures and specs
-2. Incremental Indexing - Only reindexes changed files for fast updates
+1. [AST-Level Indexing](AST_INDEXING.md) - Extracts module, function, and class definitions with signatures and specs - 
+2. [Incremental Indexing](INCREMENTAL_INDEXING.md) - Only reindexes changed files for fast updates
 3. Automatic Language Detection - Detects project type from mix.exs or pyproject.toml
 4. Watch Mode - Automatically reindexes files when changes are detected
 5. Configurable Keyword Tiers - Fast, Regular, or Max tiers for keyword extraction quality
