@@ -29,6 +29,18 @@
 7. refresh_index - Force refresh the index to pick up recent changes
 8. query_jq - Execute custom jq queries against the index
 
+## CLI Tools
+1. [CLI Tools Reference](CLI_TOOLS.md) - Comprehensive guide to all CLI commands
+2. Interactive Setup - `cicada install` with editor and model selection
+3. Index Command - Index projects with customizable options
+4. Watch Command - Monitor files and auto-reindex on changes
+5. Status Command - Display index health, links, and configurations
+6. Stats Command - View usage statistics, tool calls, and token metrics
+7. Link Command - Share indexes across repositories or worktrees
+8. Clean Command - Remove Cicada configuration and indexes
+9. Run Command - Execute MCP tools directly from command line
+10. Serve Command - Start REST API server for HTTP access to tools
+
 ## Code Indexing
 1. [AST-Level Indexing](AST_INDEXING.md) - Extracts module, function, and class definitions with signatures and specs
 2. [Incremental Indexing](INCREMENTAL_INDEXING.md) - Only reindexes changed files for fast updates (includes Watch Mode)
@@ -76,17 +88,6 @@
 5. Codex Setup - One-command setup for Codex editor
 6. Zed Setup - One-command setup for Zed editor
 7. MCP Server - Model Context Protocol server for AI assistants
-
-## CLI Tools
-1. Interactive Setup - `cicada install` with editor and model selection
-2. Index Command - Index projects with customizable options
-3. Watch Command - Monitor files and auto-reindex on changes
-4. Status Command - Display index health, links, and configurations
-5. Stats Command - View usage statistics, tool calls, and token metrics
-6. Link Command - Share indexes across repositories or worktrees
-7. Clean Command - Remove Cicada configuration and indexes
-8. Run Command - Execute MCP tools directly from command line
-9. Serve Command - Start REST API server for HTTP access to tools
 
 ## Output & Token Optimization
 1. Compact Output - Token-efficient responses with essential info only
