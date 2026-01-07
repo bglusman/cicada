@@ -1,4 +1,4 @@
-.PHONY: help install install-deps generate-scip-proto setup-fixtures setup-scip setup-scip-fixtures test test-verbose test-watch cover clean reset format lint pre-commit ci-test pr-comments dev
+.PHONY: help install install-deps generate-scip-proto setup-fixtures setup-scip setup-scip-fixtures test test-verbose test-watch cover test-docker test-docker-langs test-docker-complete clean reset format lint pre-commit ci-test pr-comments dev
 
 # Default target
 help:
@@ -13,6 +13,9 @@ help:
 	@echo "  make test-verbose     - Run tests with verbose output (auto-installs dependencies)"
 	@echo "  make test-watch       - Run tests in watch mode (auto-installs dependencies)"
 	@echo "  make cover            - Run tests with coverage report (auto-installs dependencies)"
+	@echo "  make test-docker      - Run all SCIP language Docker tests (fast all-in-one image)"
+	@echo "  make test-docker-langs LANGS='go java' - Run specific SCIP language Docker tests"
+	@echo "  make test-docker-complete - Run complete Docker test pipeline"
 	@echo "  make format           - Format code with black (auto-installs dependencies)"
 	@echo "  make lint             - Run ruff linter, pyrefly type checker and vulture dead code detector (auto-installs dependencies)"
 	@echo "  make lint-fix         - Auto-fix issues with ruff"
@@ -137,6 +140,34 @@ test-watch: install-deps generate-scip-proto setup-fixtures setup-scip-fixtures
 cover: install-deps generate-scip-proto setup-fixtures setup-scip-fixtures
 	@uv run pytest -n auto --dist loadgroup --cov=cicada --cov-report=html --cov-report=term-missing --cov-fail-under=80
 	@echo "Coverage report generated in htmlcov/index.html"
+
+# Run all SCIP language Docker tests (recommended - fast all-in-one image)
+test-docker:
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "Error: docker is not installed. Please install Docker first."; \
+		exit 1; \
+	fi
+	@cd tests/docker && ./test-scip-languages.sh
+
+# Run specific SCIP language Docker tests (usage: make test-docker-langs LANGS="go java")
+test-docker-langs:
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "Error: docker is not installed. Please install Docker first."; \
+		exit 1; \
+	fi
+	@if [ -z "$(LANGS)" ]; then \
+		echo "Error: Please specify LANGS variable (e.g., make test-docker-langs LANGS='go java')"; \
+		exit 1; \
+	fi
+	@cd tests/docker && ./test-scip-languages.sh $(LANGS)
+
+# Run complete Docker test pipeline
+test-docker-complete:
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "Error: docker is not installed. Please install Docker first."; \
+		exit 1; \
+	fi
+	@cd tests/docker && ./test-complete.sh
 
 # Format code with black
 format: install-deps
