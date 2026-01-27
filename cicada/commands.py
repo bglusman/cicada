@@ -238,6 +238,11 @@ def get_argument_parser():
         action="store_true",
         help="Skip all optional features (PR indexing, etc.)",
     )
+    install_parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Store index in .cicada/ directory inside the repository (portable, shareable)",
+    )
 
     server_parser = subparsers.add_parser(
         "server",
@@ -360,6 +365,11 @@ def get_argument_parser():
         "--no-cochange",
         action="store_true",
         help="Disable co-change analysis (enabled by default for better search results)",
+    )
+    index_parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Store index in .cicada/ directory inside the repository (portable, shareable)",
     )
 
     index_pr_parser = subparsers.add_parser(
@@ -835,8 +845,18 @@ def handle_index_main(args) -> None:
     # Detect project language
     language = detect_project_language(repo_path)
 
+    # Check for --local flag for in-repo storage
+    prefer_local = getattr(args, "local", False)
+
+    # Create storage directory first (with local preference if specified)
+    # This ensures get_config_path and get_index_path will find the right location
+    storage_dir = create_storage_dir(repo_path, prefer_local=prefer_local)
+
+    if prefer_local:
+        print(f"Using local storage: {storage_dir}")
+
+    # Now get paths using standard functions (they will auto-detect local storage)
     config_path = get_config_path(repo_path)
-    storage_dir = create_storage_dir(repo_path)
     index_path = get_index_path(repo_path)
 
     force_enabled = getattr(args, "force", False) is True
@@ -1402,6 +1422,7 @@ def handle_install(args) -> None:
 
     # Run setup
     assert editor is not None
+    prefer_local = getattr(args, "local", False)
     try:
         setup(
             cast(EditorType, editor),
@@ -1411,6 +1432,7 @@ def handle_install(args) -> None:
             index_prs=should_index_prs or False,
             add_to_claude_md=should_add_to_claude or False,
             embeddings_config=embeddings_config,
+            prefer_local=prefer_local,
         )
     except Exception as e:
         print(f"\nError: Setup failed: {e}", file=sys.stderr)

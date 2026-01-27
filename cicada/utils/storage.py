@@ -40,9 +40,22 @@ def get_repo_hash(repo_path: str | Path) -> str:
     return hashlib.sha256(repo_path_str.encode()).hexdigest()[:16]
 
 
-def get_storage_dir(repo_path: str | Path) -> Path:
+def get_local_storage_dir(repo_path: str | Path) -> Path:
     """
-    Get the storage directory for a repository.
+    Get the local (in-repo) storage directory path.
+
+    Args:
+        repo_path: Path to the repository
+
+    Returns:
+        Path to the .cicada directory inside the repository
+    """
+    return Path(repo_path).resolve() / ".cicada"
+
+
+def get_global_storage_dir(repo_path: str | Path) -> Path:
+    """
+    Get the global storage directory for a repository.
 
     Storage structure:
         ~/.cicada/projects/<repo_hash>/
@@ -51,24 +64,68 @@ def get_storage_dir(repo_path: str | Path) -> Path:
         repo_path: Path to the repository
 
     Returns:
-        Path to the storage directory for this repository
+        Path to the global storage directory for this repository
     """
     repo_hash = get_repo_hash(repo_path)
-    storage_dir = Path.home() / ".cicada" / "projects" / repo_hash
-    return storage_dir
+    return Path.home() / ".cicada" / "projects" / repo_hash
 
 
-def create_storage_dir(repo_path: str | Path) -> Path:
+def has_local_storage(repo_path: str | Path) -> bool:
     """
-    Create the storage directory for a repository if it doesn't exist.
+    Check if a repository has local (in-repo) storage.
+
+    A repository has local storage if .cicada/index.json exists in the repo root.
 
     Args:
         repo_path: Path to the repository
 
     Returns:
+        True if local storage exists, False otherwise
+    """
+    local_dir = get_local_storage_dir(repo_path)
+    return (local_dir / "index.json").exists()
+
+
+def get_storage_dir(repo_path: str | Path, prefer_local: bool = False) -> Path:
+    """
+    Get the storage directory for a repository.
+
+    Priority order:
+    1. If local .cicada/index.json exists in repo, use local storage
+    2. If prefer_local is True, use local storage (for creating new local index)
+    3. Fall back to global storage (~/.cicada/projects/<repo_hash>/)
+
+    Args:
+        repo_path: Path to the repository
+        prefer_local: If True, prefer local storage even if it doesn't exist yet
+
+    Returns:
+        Path to the storage directory for this repository
+    """
+    # Check for existing local storage first (auto-detect)
+    if has_local_storage(repo_path):
+        return get_local_storage_dir(repo_path)
+
+    # Explicit preference for local storage (e.g., --local flag)
+    if prefer_local:
+        return get_local_storage_dir(repo_path)
+
+    # Fall back to global storage
+    return get_global_storage_dir(repo_path)
+
+
+def create_storage_dir(repo_path: str | Path, prefer_local: bool = False) -> Path:
+    """
+    Create the storage directory for a repository if it doesn't exist.
+
+    Args:
+        repo_path: Path to the repository
+        prefer_local: If True, create local storage in .cicada/ directory
+
+    Returns:
         Path to the created storage directory
     """
-    storage_dir = get_storage_dir(repo_path)
+    storage_dir = get_storage_dir(repo_path, prefer_local=prefer_local)
     storage_dir.mkdir(parents=True, exist_ok=True)
     return storage_dir
 

@@ -20,6 +20,7 @@ from cicada.interactive_setup_helpers import (
     MODE_MAP,
     MODE_MAP_TEXT,
     PR_ITEMS,
+    STORAGE_ITEMS,
     UnsupportedProjectError,
     check_elixir_project,
     display_claude_md_selection,
@@ -27,6 +28,7 @@ from cicada.interactive_setup_helpers import (
     display_embeddings_config_selection,
     display_mode_selection,
     display_pr_indexing_selection,
+    display_storage_selection,
     get_existing_config,
     run_setup,
 )
@@ -88,7 +90,7 @@ def _prompt_menu_selection(items: list[str], cancel_message: str) -> int:
     return int(selection)
 
 
-def _handle_menu_unavailable() -> tuple[str, bool, bool, dict[str, str] | None]:
+def _handle_menu_unavailable() -> tuple[str, bool, bool, dict[str, str] | None, bool]:
     """Fallback to text-based setup when TerminalMenu cannot be used."""
     print(
         f"\n{GREY}Note: Terminal menu not supported, using text-based input{RESET}\n",
@@ -97,16 +99,17 @@ def _handle_menu_unavailable() -> tuple[str, bool, bool, dict[str, str] | None]:
     return _text_based_setup()
 
 
-def _text_based_setup() -> tuple[str, bool, bool, dict[str, str] | None]:
+def _text_based_setup() -> tuple[str, bool, bool, dict[str, str] | None, bool]:
     """
     Fallback text-based setup for terminals that don't support simple-term-menu.
 
     Returns:
-        tuple[str, bool, bool, dict | None]: The selected indexing mode, whether to index PRs,
-                                              whether to add to CLAUDE.md, and embeddings config
+        tuple[str, bool, bool, dict | None, bool]: The selected indexing mode, whether to index PRs,
+                                                    whether to add to CLAUDE.md, embeddings config,
+                                                    and whether to use local storage
     """
     _print_first_time_intro(show_header=True)
-    print(f"{BOLD}Step 1/3: Choose indexing mode{RESET}")
+    print(f"{BOLD}Step 1/4: Choose indexing mode{RESET}")
     print()
     print("1. Keywords - Token-based extraction (default)")
     print("2. Embeddings - Semantic search via Ollama")
@@ -134,7 +137,7 @@ def _text_based_setup() -> tuple[str, bool, bool, dict[str, str] | None]:
         embeddings_config = _configure_embeddings()
 
     # Step 2: Ask about PR indexing
-    print(f"{BOLD}Step 2/3: Index pull requests?{RESET}")
+    print(f"{BOLD}Step 2/4: Index pull requests?{RESET}")
     print(f"{PRIMARY}   PR indexing enables fast offline lookup of GitHub PRs{RESET}")
     print(f"{PRIMARY}   Useful for: finding which PR introduced code, viewing PR context{RESET}")
     print()
@@ -159,7 +162,7 @@ def _text_based_setup() -> tuple[str, bool, bool, dict[str, str] | None]:
     display_pr_indexing_selection(index_prs)
 
     # Step 3: Ask about adding to CLAUDE.md
-    print(f"{BOLD}Step 3/3: Augment CLAUDE.md for AI assistants?{RESET}")
+    print(f"{BOLD}Step 3/4: Augment CLAUDE.md for AI assistants?{RESET}")
     print(f"{PRIMARY}   Add documentation to CLAUDE.md to help AI assistants{RESET}")
     print(f"{PRIMARY}   understand when and how to use Cicada tools effectively{RESET}")
     print()
@@ -183,7 +186,32 @@ def _text_based_setup() -> tuple[str, bool, bool, dict[str, str] | None]:
 
     display_claude_md_selection(add_to_claude_md_flag)
 
-    return (indexing_mode, index_prs, add_to_claude_md_flag, embeddings_config)
+    # Step 4: Ask about storage location
+    print(f"{BOLD}Step 4/4: Where to store the index?{RESET}")
+    print(f"{PRIMARY}   Global (~/.cicada): Private to this machine{RESET}")
+    print(f"{PRIMARY}   Local (.cicada/): Portable, can be committed to git{RESET}")
+    print()
+    print("1. Global - Store in ~/.cicada (default)")
+    print("2. Local - Store in .cicada/ inside the repo")
+    print()
+
+    while True:
+        try:
+            storage_choice = input("Enter your choice (1 or 2) [default: 1]: ").strip()
+            if not storage_choice:
+                storage_choice = "1"
+            if storage_choice in ("1", "2"):
+                prefer_local = storage_choice == "2"
+                break
+            print("Invalid choice. Please enter 1 or 2.")
+        except (KeyboardInterrupt, EOFError):
+            print()
+            print(f"{SELECTED}Setup cancelled. Exiting...{RESET}")
+            sys.exit(1)
+
+    display_storage_selection(prefer_local)
+
+    return (indexing_mode, index_prs, add_to_claude_md_flag, embeddings_config, prefer_local)
 
 
 def _prompt_ollama_url() -> str:
@@ -356,7 +384,8 @@ def show_first_time_setup(
     show_welcome: bool = True,
     default_index_prs: bool | None = None,
     default_add_to_claude: bool | None = None,
-) -> tuple[str, bool, bool, dict[str, str] | None]:
+    default_prefer_local: bool | None = None,
+) -> tuple[str, bool, bool, dict[str, str] | None, bool]:
     """
     Display an interactive first-time setup menu for cicada.
 
@@ -366,10 +395,12 @@ def show_first_time_setup(
         show_welcome: Whether to display the ASCII art banner and intro text.
         default_index_prs: If set, skip PR indexing question and use this value.
         default_add_to_claude: If set, skip CLAUDE.md question and use this value.
+        default_prefer_local: If set, skip storage location question and use this value.
 
     Returns:
-        tuple[str, bool, bool, dict | None]: The selected indexing mode, whether to index PRs,
-                                              whether to add to CLAUDE.md, and embeddings config
+        tuple[str, bool, bool, dict | None, bool]: The selected indexing mode, whether to index PRs,
+                                                    whether to add to CLAUDE.md, embeddings config,
+                                                    and whether to use local storage
     """
     # Check if terminal menu is available and supported
     if not has_terminal_menu:
@@ -377,7 +408,7 @@ def show_first_time_setup(
         return _text_based_setup()
 
     _print_first_time_intro(show_header=show_welcome)
-    print(f"{BOLD}Step 1/3: Choose indexing mode{RESET}")
+    print(f"{BOLD}Step 1/4: Choose indexing mode{RESET}")
 
     def _select_with_menu(items: list[str], cancel_message: str) -> int | None:
         try:
@@ -401,7 +432,7 @@ def show_first_time_setup(
     if default_index_prs is not None:
         index_prs = default_index_prs
     else:
-        print(f"{BOLD}Step 2/3: Index pull requests?{RESET}")
+        print(f"{BOLD}Step 2/4: Index pull requests?{RESET}")
         print(f"{PRIMARY}   PR indexing enables fast offline lookup of GitHub PRs{RESET}")
         print(
             f"{PRIMARY}   Useful for: finding which PR introduced code, viewing PR context{RESET}"
@@ -423,7 +454,7 @@ def show_first_time_setup(
     if default_add_to_claude is not None:
         add_to_claude_md_flag = default_add_to_claude
     else:
-        print(f"{BOLD}Step 3/3: Augment CLAUDE.md for AI assistants?{RESET}")
+        print(f"{BOLD}Step 3/4: Augment CLAUDE.md for AI assistants?{RESET}")
         print(f"{PRIMARY}   Add documentation to CLAUDE.md to help AI assistants{RESET}")
         print(f"{PRIMARY}   understand when and how to use Cicada tools effectively{RESET}")
         print()
@@ -439,7 +470,27 @@ def show_first_time_setup(
 
     display_claude_md_selection(add_to_claude_md_flag)
 
-    return (indexing_mode, index_prs, add_to_claude_md_flag, embeddings_config)
+    # Step 4: Ask about storage location
+    if default_prefer_local is not None:
+        prefer_local = default_prefer_local
+    else:
+        print(f"{BOLD}Step 4/4: Where to store the index?{RESET}")
+        print(f"{PRIMARY}   Global (~/.cicada): Private to this machine{RESET}")
+        print(f"{PRIMARY}   Local (.cicada/): Portable, can be committed to git{RESET}")
+        print()
+
+        storage_index = _select_with_menu(
+            STORAGE_ITEMS,
+            f"{SELECTED}Setup cancelled. Exiting...{RESET}",
+        )
+        if storage_index is None:
+            return _handle_menu_unavailable()
+
+        prefer_local = storage_index == 1  # "Local" is at index 1
+
+    display_storage_selection(prefer_local)
+
+    return (indexing_mode, index_prs, add_to_claude_md_flag, embeddings_config, prefer_local)
 
 
 def _text_based_editor_selection() -> str:
@@ -498,6 +549,7 @@ def show_full_interactive_setup(repo_path: str | Path | None = None) -> None:
         index_prs: bool = False,
         add_to_claude_md: bool = False,
         embeddings_config: dict[str, str] | None = None,
+        prefer_local: bool = False,
     ) -> None:
         try:
             run_setup(
@@ -508,6 +560,7 @@ def show_full_interactive_setup(repo_path: str | Path | None = None) -> None:
                 index_prs=index_prs,
                 add_to_claude_md=add_to_claude_md,
                 embeddings_config=embeddings_config,
+                prefer_local=prefer_local,
             )
         except Exception as e:
             print(f"\n{PRIMARY}Error: Setup failed: {e}{RESET}")
@@ -591,7 +644,7 @@ def show_full_interactive_setup(repo_path: str | Path | None = None) -> None:
         _run_setup_with_error_handling(editor, repo_path, indexing_mode, index_exists=True)
         return
 
-    indexing_mode, index_prs, add_to_claude_md_flag, embeddings_config = show_first_time_setup(
+    indexing_mode, index_prs, add_to_claude_md_flag, embeddings_config, prefer_local = show_first_time_setup(
         show_welcome=False
     )
 
@@ -605,4 +658,5 @@ def show_full_interactive_setup(repo_path: str | Path | None = None) -> None:
         index_prs=index_prs,
         add_to_claude_md=add_to_claude_md_flag,
         embeddings_config=embeddings_config,
+        prefer_local=prefer_local,
     )
