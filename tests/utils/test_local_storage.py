@@ -5,8 +5,6 @@ This tests the ability to store indexes in .cicada/ directory inside the reposit
 instead of the global ~/.cicada/projects/<hash>/ directory.
 """
 
-from pathlib import Path
-
 import pytest
 
 from cicada.utils.storage import (

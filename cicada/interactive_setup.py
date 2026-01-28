@@ -90,18 +90,35 @@ def _prompt_menu_selection(items: list[str], cancel_message: str) -> int:
     return int(selection)
 
 
-def _handle_menu_unavailable() -> tuple[str, bool, bool, dict[str, str] | None, bool]:
+def _handle_menu_unavailable(
+    default_index_prs: bool | None = None,
+    default_add_to_claude: bool | None = None,
+    default_prefer_local: bool | None = None,
+) -> tuple[str, bool, bool, dict[str, str] | None, bool]:
     """Fallback to text-based setup when TerminalMenu cannot be used."""
     print(
         f"\n{GREY}Note: Terminal menu not supported, using text-based input{RESET}\n",
         file=sys.stderr,
     )
-    return _text_based_setup()
+    return _text_based_setup(
+        default_index_prs=default_index_prs,
+        default_add_to_claude=default_add_to_claude,
+        default_prefer_local=default_prefer_local,
+    )
 
 
-def _text_based_setup() -> tuple[str, bool, bool, dict[str, str] | None, bool]:
+def _text_based_setup(
+    default_index_prs: bool | None = None,
+    default_add_to_claude: bool | None = None,
+    default_prefer_local: bool | None = None,
+) -> tuple[str, bool, bool, dict[str, str] | None, bool]:
     """
     Fallback text-based setup for terminals that don't support simple-term-menu.
+
+    Args:
+        default_index_prs: If set, skip PR indexing question and use this value.
+        default_add_to_claude: If set, skip CLAUDE.md question and use this value.
+        default_prefer_local: If set, skip storage location question and use this value.
 
     Returns:
         tuple[str, bool, bool, dict | None, bool]: The selected indexing mode, whether to index PRs,
@@ -137,77 +154,86 @@ def _text_based_setup() -> tuple[str, bool, bool, dict[str, str] | None, bool]:
         embeddings_config = _configure_embeddings()
 
     # Step 2: Ask about PR indexing
-    print(f"{BOLD}Step 2/4: Index pull requests?{RESET}")
-    print(f"{PRIMARY}   PR indexing enables fast offline lookup of GitHub PRs{RESET}")
-    print(f"{PRIMARY}   Useful for: finding which PR introduced code, viewing PR context{RESET}")
-    print()
-    print("1. Yes - Index PRs now (requires GitHub access)")
-    print("2. No - Skip PR indexing (can run later with 'cicada-pr-indexer')")
-    print()
+    if default_index_prs is not None:
+        index_prs = default_index_prs
+    else:
+        print(f"{BOLD}Step 2/4: Index pull requests?{RESET}")
+        print(f"{PRIMARY}   PR indexing enables fast offline lookup of GitHub PRs{RESET}")
+        print(f"{PRIMARY}   Useful for: finding which PR introduced code, viewing PR context{RESET}")
+        print()
+        print("1. Yes - Index PRs now (requires GitHub access)")
+        print("2. No - Skip PR indexing (can run later with 'cicada-pr-indexer')")
+        print()
 
-    while True:
-        try:
-            pr_choice = input("Enter your choice (1 or 2) [default: 2]: ").strip()
-            if not pr_choice:
-                pr_choice = "2"
-            if pr_choice in ("1", "2"):
-                index_prs = pr_choice == "1"
-                break
-            print("Invalid choice. Please enter 1 or 2.")
-        except (KeyboardInterrupt, EOFError):
-            print()
-            print(f"{SELECTED}Setup cancelled. Exiting...{RESET}")
-            sys.exit(1)
+        while True:
+            try:
+                pr_choice = input("Enter your choice (1 or 2) [default: 2]: ").strip()
+                if not pr_choice:
+                    pr_choice = "2"
+                if pr_choice in ("1", "2"):
+                    index_prs = pr_choice == "1"
+                    break
+                print("Invalid choice. Please enter 1 or 2.")
+            except (KeyboardInterrupt, EOFError):
+                print()
+                print(f"{SELECTED}Setup cancelled. Exiting...{RESET}")
+                sys.exit(1)
 
     display_pr_indexing_selection(index_prs)
 
     # Step 3: Ask about adding to CLAUDE.md
-    print(f"{BOLD}Step 3/4: Augment CLAUDE.md for AI assistants?{RESET}")
-    print(f"{PRIMARY}   Add documentation to CLAUDE.md to help AI assistants{RESET}")
-    print(f"{PRIMARY}   understand when and how to use Cicada tools effectively{RESET}")
-    print()
-    print("1. Yes - Add Cicada usage guide to CLAUDE.md (recommended)")
-    print("2. No - Skip CLAUDE.md setup")
-    print()
+    if default_add_to_claude is not None:
+        add_to_claude_md_flag = default_add_to_claude
+    else:
+        print(f"{BOLD}Step 3/4: Augment CLAUDE.md for AI assistants?{RESET}")
+        print(f"{PRIMARY}   Add documentation to CLAUDE.md to help AI assistants{RESET}")
+        print(f"{PRIMARY}   understand when and how to use Cicada tools effectively{RESET}")
+        print()
+        print("1. Yes - Add Cicada usage guide to CLAUDE.md (recommended)")
+        print("2. No - Skip CLAUDE.md setup")
+        print()
 
-    while True:
-        try:
-            claude_md_choice = input("Enter your choice (1 or 2) [default: 1]: ").strip()
-            if not claude_md_choice:
-                claude_md_choice = "1"
-            if claude_md_choice in ("1", "2"):
-                add_to_claude_md_flag = claude_md_choice == "1"
-                break
-            print("Invalid choice. Please enter 1 or 2.")
-        except (KeyboardInterrupt, EOFError):
-            print()
-            print(f"{SELECTED}Setup cancelled. Exiting...{RESET}")
-            sys.exit(1)
+        while True:
+            try:
+                claude_md_choice = input("Enter your choice (1 or 2) [default: 1]: ").strip()
+                if not claude_md_choice:
+                    claude_md_choice = "1"
+                if claude_md_choice in ("1", "2"):
+                    add_to_claude_md_flag = claude_md_choice == "1"
+                    break
+                print("Invalid choice. Please enter 1 or 2.")
+            except (KeyboardInterrupt, EOFError):
+                print()
+                print(f"{SELECTED}Setup cancelled. Exiting...{RESET}")
+                sys.exit(1)
 
     display_claude_md_selection(add_to_claude_md_flag)
 
     # Step 4: Ask about storage location
-    print(f"{BOLD}Step 4/4: Where to store the index?{RESET}")
-    print(f"{PRIMARY}   Global (~/.cicada): Private to this machine{RESET}")
-    print(f"{PRIMARY}   Local (.cicada/): Portable, can be committed to git{RESET}")
-    print()
-    print("1. Global - Store in ~/.cicada (default)")
-    print("2. Local - Store in .cicada/ inside the repo")
-    print()
+    if default_prefer_local is not None:
+        prefer_local = default_prefer_local
+    else:
+        print(f"{BOLD}Step 4/4: Where to store the index?{RESET}")
+        print(f"{PRIMARY}   Global (~/.cicada): Private to this machine{RESET}")
+        print(f"{PRIMARY}   Local (.cicada/): Portable, can be committed to git{RESET}")
+        print()
+        print("1. Global - Store in ~/.cicada (default)")
+        print("2. Local - Store in .cicada/ inside the repo")
+        print()
 
-    while True:
-        try:
-            storage_choice = input("Enter your choice (1 or 2) [default: 1]: ").strip()
-            if not storage_choice:
-                storage_choice = "1"
-            if storage_choice in ("1", "2"):
-                prefer_local = storage_choice == "2"
-                break
-            print("Invalid choice. Please enter 1 or 2.")
-        except (KeyboardInterrupt, EOFError):
-            print()
-            print(f"{SELECTED}Setup cancelled. Exiting...{RESET}")
-            sys.exit(1)
+        while True:
+            try:
+                storage_choice = input("Enter your choice (1 or 2) [default: 1]: ").strip()
+                if not storage_choice:
+                    storage_choice = "1"
+                if storage_choice in ("1", "2"):
+                    prefer_local = storage_choice == "2"
+                    break
+                print("Invalid choice. Please enter 1 or 2.")
+            except (KeyboardInterrupt, EOFError):
+                print()
+                print(f"{SELECTED}Setup cancelled. Exiting...{RESET}")
+                sys.exit(1)
 
     display_storage_selection(prefer_local)
 
@@ -404,8 +430,11 @@ def show_first_time_setup(
     """
     # Check if terminal menu is available and supported
     if not has_terminal_menu:
-        # Pass defaults to text-based setup if needed (not implemented yet, but keeping consistent)
-        return _text_based_setup()
+        return _text_based_setup(
+            default_index_prs=default_index_prs,
+            default_add_to_claude=default_add_to_claude,
+            default_prefer_local=default_prefer_local,
+        )
 
     _print_first_time_intro(show_header=show_welcome)
     print(f"{BOLD}Step 1/4: Choose indexing mode{RESET}")
@@ -418,7 +447,11 @@ def show_first_time_setup(
 
     mode_index = _select_with_menu(MODE_ITEMS, "Setup cancelled. Exiting...")
     if mode_index is None:
-        return _handle_menu_unavailable()
+        return _handle_menu_unavailable(
+            default_index_prs=default_index_prs,
+            default_add_to_claude=default_add_to_claude,
+            default_prefer_local=default_prefer_local,
+        )
 
     indexing_mode = MODE_MAP[mode_index]
     display_mode_selection(mode_index)
@@ -444,7 +477,11 @@ def show_first_time_setup(
             f"{SELECTED}Setup cancelled. Exiting...{RESET}",
         )
         if pr_index is None:
-            return _handle_menu_unavailable()
+            return _handle_menu_unavailable(
+                default_index_prs=default_index_prs,
+                default_add_to_claude=default_add_to_claude,
+                default_prefer_local=default_prefer_local,
+            )
 
         index_prs = pr_index == 1
 
@@ -464,7 +501,11 @@ def show_first_time_setup(
             f"{SELECTED}Setup cancelled. Exiting...{RESET}",
         )
         if claude_md_index is None:
-            return _handle_menu_unavailable()
+            return _handle_menu_unavailable(
+                default_index_prs=default_index_prs,
+                default_add_to_claude=default_add_to_claude,
+                default_prefer_local=default_prefer_local,
+            )
 
         add_to_claude_md_flag = claude_md_index == 0  # "Yes" is at index 0
 
@@ -484,7 +525,11 @@ def show_first_time_setup(
             f"{SELECTED}Setup cancelled. Exiting...{RESET}",
         )
         if storage_index is None:
-            return _handle_menu_unavailable()
+            return _handle_menu_unavailable(
+                default_index_prs=default_index_prs,
+                default_add_to_claude=default_add_to_claude,
+                default_prefer_local=default_prefer_local,
+            )
 
         prefer_local = storage_index == 1  # "Local" is at index 1
 

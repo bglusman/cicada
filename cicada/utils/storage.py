@@ -74,7 +74,9 @@ def has_local_storage(repo_path: str | Path) -> bool:
     """
     Check if a repository has local (in-repo) storage.
 
-    A repository has local storage if .cicada/index.json exists in the repo root.
+    A repository has local storage if either:
+    - .cicada/index.json exists (has an index)
+    - .cicada/.local marker file exists (was created with --local flag)
 
     Args:
         repo_path: Path to the repository
@@ -83,7 +85,7 @@ def has_local_storage(repo_path: str | Path) -> bool:
         True if local storage exists, False otherwise
     """
     local_dir = get_local_storage_dir(repo_path)
-    return (local_dir / "index.json").exists()
+    return (local_dir / "index.json").exists() or (local_dir / ".local").exists()
 
 
 def get_storage_dir(repo_path: str | Path, prefer_local: bool = False) -> Path:
@@ -102,12 +104,8 @@ def get_storage_dir(repo_path: str | Path, prefer_local: bool = False) -> Path:
     Returns:
         Path to the storage directory for this repository
     """
-    # Check for existing local storage first (auto-detect)
-    if has_local_storage(repo_path):
-        return get_local_storage_dir(repo_path)
-
-    # Explicit preference for local storage (e.g., --local flag)
-    if prefer_local:
+    # Use local storage if it already exists or if explicitly preferred
+    if has_local_storage(repo_path) or prefer_local:
         return get_local_storage_dir(repo_path)
 
     # Fall back to global storage
@@ -118,6 +116,9 @@ def create_storage_dir(repo_path: str | Path, prefer_local: bool = False) -> Pat
     """
     Create the storage directory for a repository if it doesn't exist.
 
+    When prefer_local is True and a global index exists, copies the index files
+    from global storage to local storage for a seamless migration.
+
     Args:
         repo_path: Path to the repository
         prefer_local: If True, create local storage in .cicada/ directory
@@ -125,7 +126,42 @@ def create_storage_dir(repo_path: str | Path, prefer_local: bool = False) -> Pat
     Returns:
         Path to the created storage directory
     """
-    storage_dir = get_storage_dir(repo_path, prefer_local=prefer_local)
+    import shutil
+
+    repo_path = Path(repo_path).resolve()
+
+    if prefer_local:
+        local_dir = get_local_storage_dir(repo_path)
+        local_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create marker file to indicate local storage preference
+        marker_file = local_dir / ".local"
+        if not marker_file.exists():
+            marker_file.touch()
+
+        # Copy existing global index to local if it exists and local is empty
+        global_dir = get_global_storage_dir(repo_path)
+        local_index = local_dir / "index.json"
+
+        if not local_index.exists() and (global_dir / "index.json").exists():
+            # Copy all relevant files from global to local
+            files_to_copy = [
+                "index.json",
+                "hashes.json",
+                "config.yaml",
+                "pr_index.json",
+                "vectors.jsonl",
+            ]
+            for filename in files_to_copy:
+                src = global_dir / filename
+                if src.exists():
+                    shutil.copy2(src, local_dir / filename)
+            print(f"Migrated existing index from {global_dir} to {local_dir}")
+
+        return local_dir
+
+    # Default: use global storage
+    storage_dir = get_storage_dir(repo_path, prefer_local=False)
     storage_dir.mkdir(parents=True, exist_ok=True)
     return storage_dir
 
