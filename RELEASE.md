@@ -110,8 +110,53 @@ Follow [Semantic Versioning](https://semver.org/):
 - Check workflow logs for specific errors
 - Ensure all dependencies are in `pyproject.toml`
 
+## Monorepo Package Publishing
+
+This project uses a monorepo structure with multiple packages:
+
+1. **cicada-mcp** - Main package (depends on cicada-mcp-core)
+2. **cicada-mcp-core** - Core utilities (zero external dependencies)
+3. **cicada-scip** - SCIP indexing support (depends on cicada-mcp-core)
+
+### Publishing Behavior
+
+The workflow publishes packages in dependency order:
+1. First: `cicada-mcp-core`
+2. Second: `cicada-mcp`
+
+#### cicada-mcp-core Error Handling
+
+The publish workflow has **intelligent error handling** for `cicada-mcp-core`:
+
+| Scenario | Result |
+|----------|--------|
+| Publish succeeds | ✅ Continue to next package |
+| Version already exists on PyPI | ⚠️ Continue (expected when core hasn't changed) |
+| Authentication failure | ❌ **Build fails** |
+| Network error | ❌ **Build fails** |
+| Build/packaging error | ❌ **Build fails** |
+
+This ensures that:
+- **Real errors are not masked** - Authentication, network, or build issues will fail the release
+- **Idempotent releases work** - Re-releasing the same version without bumping core is allowed
+- **Only "already exists" errors are tolerated** - Detected via output patterns: `already exists`, `FileExistsError`, `400 Bad Request`
+
+### When to Bump cicada-mcp-core Version
+
+Bump `cicada-mcp-core` version in `packages/cicada-mcp-core/pyproject.toml` when:
+- Core utilities change
+- Base indexer changes
+- Formatter interface changes
+- Hash utilities change
+
+Keep `cicada-mcp-core` version unchanged when:
+- Only main `cicada-mcp` code changes
+- Only `cicada-scip` changes
+- Documentation changes
+
 ## Related Files
 
 - `.github/workflows/publish-pypi.yml` - Main release workflow
 - `pyproject.toml` - Package configuration and version
+- `packages/cicada-mcp-core/pyproject.toml` - Core package version
 - `CLAUDE.md` - Project guidelines including release process
