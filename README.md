@@ -476,6 +476,26 @@ All tools return structured Markdown/JSON snippets (signatures, call sites, PR m
 
 ---
 
+## Comparison to Alternatives
+
+| Feature | CICADA | [Serena](https://github.com/oraios/serena) | [Codicil](https://github.com/E-xyza/codicil) (Elixir-only) |
+|---------|--------|--------|---------|
+| **Analysis Method** | SCIP (static index) | LSP (real-time server) | LLM summaries + embeddings |
+| **Code Editing** | ❌ | ✅ | ❌ |
+| **Git Context** | ✅ PR history, blame, evolution | ❌ | ❌ |
+| **Resource Usage** | Low (read from disk) | High (persistent server processes) | Medium (API calls) |
+| **Privacy** | 100% local | 100% local | Requires external LLM APIs |
+| **Semantic Search** | Local Ollama or keywords | ❌ | OpenAI/Anthropic embeddings |
+| **Call Graph** | Bidirectional with alias resolution | LSP-based | ❌ |
+
+**When to choose CICADA:** You want local-first operation with rich git context (PR attribution, blame, function evolution tracking) and efficient token usage.
+
+**When to choose Serena:** You need code editing capabilities through LSP and can accept higher resource usage.
+
+**When to choose Codicil:** You have an Elixir project and prefer LLM-powered semantic summaries (Elixir-only).
+
+---
+
 ## Contributing
 
 ```bash
