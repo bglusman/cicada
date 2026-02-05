@@ -4,16 +4,16 @@ build-backend = "hatchling.build"
 
 # Workspace configuration for monorepo
 [tool.uv.workspace]
-members = ["packages/cicada-core", "packages/cicada-scip"]
+members = ["packages/cicada-mcp-core", "packages/cicada-scip"]
 
 [tool.uv.sources]
-cicada-core = { workspace = true }
+cicada-mcp-core = { workspace = true }
 cicada-scip = { workspace = true }
 cicada-vector = { git = "https://github.com/wende/cicada-vector" }
 
 [project]
 name = "cicada-mcp"
-version = "0.6.0"
+version = "0.6.1"
 description = "An Elixir and Python code intelligence MCP server"
 readme = "README.md"
 license = "MIT"
@@ -51,7 +51,6 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "cicada-core",
     # cicada-scip is optional - see [project.optional-dependencies]
     "mcp>=0.1.0",
     "pyyaml>=6.0",
