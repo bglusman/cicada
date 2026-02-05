@@ -5,11 +5,17 @@ This tests the ability to store indexes in .cicada/ directory inside the reposit
 instead of the global ~/.cicada/projects/<hash>/ directory.
 """
 
+import json
+from unittest.mock import patch
+
 import pytest
+import yaml
 
 from cicada.utils.storage import (
     create_storage_dir,
+    get_config_path,
     get_global_storage_dir,
+    get_index_path,
     get_local_storage_dir,
     get_storage_dir,
     has_local_storage,
@@ -164,6 +170,23 @@ class TestCreateStorageDir:
         assert storage_dir.exists()
         assert storage_dir == repo / ".cicada"
 
+    def test_local_storage_does_not_create_global_dir(self, tmp_path, mock_home_dir):
+        """When using local storage, global directory should NOT be created"""
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+
+        # Create local storage with index
+        storage_dir = create_storage_dir(repo, prefer_local=True)
+        (storage_dir / "index.json").write_text('{"modules": {"TestModule": {}}}')
+
+        # Verify local storage exists and has the index
+        assert storage_dir == repo / ".cicada"
+        assert (storage_dir / "index.json").exists()
+
+        # Verify global directory was NOT created
+        global_dir = get_global_storage_dir(repo)
+        assert not global_dir.exists(), f"Global dir should not exist but found: {global_dir}"
+
     def test_uses_existing_local_storage(self, tmp_path):
         """Should use existing local storage even without prefer_local"""
         repo = tmp_path / "my_repo"
@@ -222,7 +245,155 @@ class TestLocalStoragePortability:
         assert storage_dir == new_path / ".cicada"
 
         # Index content should be preserved
-        import json
-
         index = json.loads((storage_dir / "index.json").read_text())
         assert "Test" in index["modules"]
+
+
+class TestLocalStorageConfig:
+    """Tests for local storage configuration and integration with config.yaml"""
+
+    def test_config_path_returns_local_when_local_storage_exists(self, tmp_path):
+        """get_config_path should return local path when local storage exists"""
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+        cicada_dir = repo / ".cicada"
+        cicada_dir.mkdir()
+        (cicada_dir / "index.json").write_text('{"modules": {}}')
+
+        config_path = get_config_path(repo)
+
+        assert config_path == cicada_dir / "config.yaml"
+
+    def test_config_path_returns_global_when_no_local_storage(self, tmp_path, mock_home_dir):
+        """get_config_path should return global path when no local storage exists"""
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+
+        config_path = get_config_path(repo)
+
+        # Should be under ~/.cicada/projects/
+        assert ".cicada" in str(config_path)
+        assert "projects" in str(config_path)
+        assert config_path.name == "config.yaml"
+
+    def test_index_path_returns_local_when_local_storage_exists(self, tmp_path):
+        """get_index_path should return local path when local storage exists"""
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+        cicada_dir = repo / ".cicada"
+        cicada_dir.mkdir()
+        (cicada_dir / "index.json").write_text('{"modules": {}}')
+
+        index_path = get_index_path(repo)
+
+        assert index_path == cicada_dir / "index.json"
+
+    def test_index_path_returns_global_when_no_local_storage(self, tmp_path, mock_home_dir):
+        """get_index_path should return global path when no local storage exists"""
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+
+        index_path = get_index_path(repo)
+
+        # Should be under ~/.cicada/projects/
+        assert ".cicada" in str(index_path)
+        assert "projects" in str(index_path)
+        assert index_path.name == "index.json"
+
+    def test_local_storage_creates_marker_file(self, tmp_path):
+        """create_storage_dir with prefer_local should create .local marker file"""
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+
+        storage_dir = create_storage_dir(repo, prefer_local=True)
+
+        # Should create .local marker file
+        marker_file = storage_dir / ".local"
+        assert marker_file.exists()
+
+    def test_marker_file_triggers_local_storage_detection(self, tmp_path):
+        """.local marker file should trigger has_local_storage to return True"""
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+        cicada_dir = repo / ".cicada"
+        cicada_dir.mkdir()
+
+        # Create only the marker file, not index.json
+        (cicada_dir / ".local").touch()
+
+        assert has_local_storage(repo) is True
+
+    def test_local_storage_migration_copies_config(self, tmp_path, mock_home_dir):
+        """Creating local storage should copy existing global config if present"""
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+
+        # Create global storage with config
+        global_dir = get_global_storage_dir(repo)
+        global_dir.mkdir(parents=True)
+        (global_dir / "index.json").write_text('{"modules": {"Test": {}}}')
+        (global_dir / "config.yaml").write_text("repository:\n  path: /old/path\n")
+        (global_dir / "hashes.json").write_text('{"file_hashes": {}}')
+
+        # Create local storage (should migrate from global)
+        local_dir = create_storage_dir(repo, prefer_local=True)
+
+        # Config should be copied
+        assert (local_dir / "config.yaml").exists()
+        config_content = (local_dir / "config.yaml").read_text()
+        assert "repository:" in config_content
+
+    def test_setup_creates_local_config_yaml(self, tmp_path):
+        """Full setup should create config.yaml in local storage when prefer_local=True"""
+        from cicada.setup import create_config_yaml
+
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+        local_dir = repo / ".cicada"
+        local_dir.mkdir()
+
+        with (
+            patch("cicada.setup.get_config_path", return_value=local_dir / "config.yaml"),
+            patch("cicada.setup.get_index_path", return_value=local_dir / "index.json"),
+        ):
+            create_config_yaml(repo, local_dir, indexing_mode="keywords", verbose=False)
+
+        config_path = local_dir / "config.yaml"
+        assert config_path.exists()
+
+        config = yaml.safe_load(config_path.read_text())
+        assert config["indexing"]["mode"] == "keywords"
+        assert config["repository"]["path"] == str(repo)
+
+    def test_local_config_with_embeddings(self, tmp_path):
+        """Local config should support embeddings configuration"""
+        from cicada.setup import create_config_yaml
+
+        repo = tmp_path / "my_repo"
+        repo.mkdir()
+        local_dir = repo / ".cicada"
+        local_dir.mkdir()
+
+        embeddings_config = {
+            "ollama_host": "http://localhost:11434",
+            "model": "nomic-embed-text",
+        }
+
+        with (
+            patch("cicada.setup.get_config_path", return_value=local_dir / "config.yaml"),
+            patch("cicada.setup.get_index_path", return_value=local_dir / "index.json"),
+        ):
+            create_config_yaml(
+                repo,
+                local_dir,
+                indexing_mode="embeddings",
+                verbose=False,
+                embeddings_config=embeddings_config,
+            )
+
+        config_path = local_dir / "config.yaml"
+        config = yaml.safe_load(config_path.read_text())
+
+        assert config["indexing"]["mode"] == "embeddings"
+        assert config["embeddings"]["ollama_host"] == "http://localhost:11434"
+        assert config["embeddings"]["model"] == "nomic-embed-text"

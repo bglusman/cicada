@@ -1405,6 +1405,7 @@ def handle_install(args) -> None:
                 interactive_index_prs,
                 interactive_add_claude,
                 interactive_embeddings_config,
+                interactive_prefer_local,
             ) = show_first_time_setup(
                 default_index_prs=should_index_prs,
                 default_add_to_claude=should_add_to_claude,
@@ -1415,6 +1416,7 @@ def handle_install(args) -> None:
             should_index_prs = interactive_index_prs
             should_add_to_claude = interactive_add_claude
             embeddings_config = interactive_embeddings_config
+            prefer_local = interactive_prefer_local
 
     # If index exists but no mode flags, use existing settings
     if not mode_flag_specified(args) and index_exists:

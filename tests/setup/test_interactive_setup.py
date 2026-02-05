@@ -173,7 +173,9 @@ class TestInteractiveSetup:
         mock_ascii.return_value = "ASCII ART"
         configure_menu(mock_menu_class, [0, 0, 1, 0])  # mode, pr, claude_md, storage
 
-        indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = show_first_time_setup()
+        indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = (
+            show_first_time_setup()
+        )
 
         assert indexing_mode == "keywords"
         assert index_prs is False
@@ -196,7 +198,9 @@ class TestInteractiveSetup:
         }
         configure_menu(mock_menu_class, [1, 1, 0, 1])  # mode, pr, claude_md, storage
 
-        indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = show_first_time_setup()
+        indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = (
+            show_first_time_setup()
+        )
 
         assert indexing_mode == "embeddings"
         assert index_prs is True
@@ -227,8 +231,12 @@ class TestTextBasedSetup:
     def test_text_default_keywords_skip_pr(self):
         from cicada.interactive_setup import _text_based_setup
 
-        with patch("builtins.input", side_effect=["", "2", "2", "1"]):  # mode, pr, claude_md, storage
-            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = _text_based_setup()
+        with patch(
+            "builtins.input", side_effect=["", "2", "2", "1"]
+        ):  # mode, pr, claude_md, storage
+            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = (
+                _text_based_setup()
+            )
 
         assert indexing_mode == "keywords"
         assert index_prs is False
@@ -245,8 +253,12 @@ class TestTextBasedSetup:
             "model": "nomic-embed-text",
         }
 
-        with patch("builtins.input", side_effect=["2", "1", "1", "2"]):  # mode, pr, claude_md, storage
-            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = _text_based_setup()
+        with patch(
+            "builtins.input", side_effect=["2", "1", "1", "2"]
+        ):  # mode, pr, claude_md, storage
+            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = (
+                _text_based_setup()
+            )
 
         assert indexing_mode == "embeddings"
         assert index_prs is True
@@ -261,8 +273,12 @@ class TestTextBasedSetup:
         """Tests that invalid input is rejected and retried."""
         from cicada.interactive_setup import _text_based_setup
 
-        with patch("builtins.input", side_effect=["invalid", "1", "2", "2", "1"]):  # retry mode, pr, claude_md, storage
-            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = _text_based_setup()
+        with patch(
+            "builtins.input", side_effect=["invalid", "1", "2", "2", "1"]
+        ):  # retry mode, pr, claude_md, storage
+            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = (
+                _text_based_setup()
+            )
 
         assert indexing_mode == "keywords"
 
@@ -270,8 +286,12 @@ class TestTextBasedSetup:
         """Tests that invalid PR choice is rejected and retried."""
         from cicada.interactive_setup import _text_based_setup
 
-        with patch("builtins.input", side_effect=["1", "invalid", "2", "2", "1"]):  # mode, retry pr, claude_md, storage
-            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = _text_based_setup()
+        with patch(
+            "builtins.input", side_effect=["1", "invalid", "2", "2", "1"]
+        ):  # mode, retry pr, claude_md, storage
+            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = (
+                _text_based_setup()
+            )
 
         assert index_prs is False
 
@@ -279,8 +299,12 @@ class TestTextBasedSetup:
         """Tests that invalid CLAUDE.md choice is rejected and retried."""
         from cicada.interactive_setup import _text_based_setup
 
-        with patch("builtins.input", side_effect=["1", "2", "invalid", "1", "1"]):  # mode, pr, retry claude_md, storage
-            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = _text_based_setup()
+        with patch(
+            "builtins.input", side_effect=["1", "2", "invalid", "1", "1"]
+        ):  # mode, pr, retry claude_md, storage
+            indexing_mode, index_prs, add_to_claude_md, embeddings_config, prefer_local = (
+                _text_based_setup()
+            )
 
         assert add_to_claude_md is True
 

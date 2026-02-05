@@ -159,7 +159,9 @@ def _text_based_setup(
     else:
         print(f"{BOLD}Step 2/4: Index pull requests?{RESET}")
         print(f"{PRIMARY}   PR indexing enables fast offline lookup of GitHub PRs{RESET}")
-        print(f"{PRIMARY}   Useful for: finding which PR introduced code, viewing PR context{RESET}")
+        print(
+            f"{PRIMARY}   Useful for: finding which PR introduced code, viewing PR context{RESET}"
+        )
         print()
         print("1. Yes - Index PRs now (requires GitHub access)")
         print("2. No - Skip PR indexing (can run later with 'cicada-pr-indexer')")
@@ -689,8 +691,8 @@ def show_full_interactive_setup(repo_path: str | Path | None = None) -> None:
         _run_setup_with_error_handling(editor, repo_path, indexing_mode, index_exists=True)
         return
 
-    indexing_mode, index_prs, add_to_claude_md_flag, embeddings_config, prefer_local = show_first_time_setup(
-        show_welcome=False
+    indexing_mode, index_prs, add_to_claude_md_flag, embeddings_config, prefer_local = (
+        show_first_time_setup(show_welcome=False)
     )
 
     print(f"{BOLD}Running setup...{RESET}")
