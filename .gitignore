@@ -79,9 +79,9 @@ tests/fixtures/**/*lock.json
 tests/fixtures/**/uv.lock
 tests/fixtures/**/node_modules/
 
-# Auto-generated protobuf files (generated before tests/builds, not tracked in git)
-cicada/languages/scip/*_pb2.py
-cicada/languages/scip/*_pb2.pyi
+# Auto-generated protobuf files (previously gitignored, now tracked since SCIP is inlined)
+# cicada/languages/scip/*_pb2.py
+# cicada/languages/scip/*_pb2.pyi
 
 # Link directory
 link/

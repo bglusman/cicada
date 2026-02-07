@@ -7,8 +7,8 @@ cicada-vector = { git = "https://github.com/wende/cicada-vector" }
 
 [project]
 name = "cicada-mcp"
-version = "0.6.3rc0"
-description = "An Elixir and Python code intelligence MCP server"
+version = "0.6.3rc1"
+description = "Code Intelligence MCP for 15 languages"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -89,6 +89,12 @@ cicada-mcp = "cicada.mcp.entry:main"
 cicada-server = "cicada.mcp.entry:main"  # Backwards compatibility
 cicada = "cicada.cli:main"
 
+
+[tool.hatch.build]
+# Include files that are gitignored but needed at runtime
+artifacts = [
+    "cicada/_version_hash.py",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["cicada"]
