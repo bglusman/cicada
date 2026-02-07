@@ -23,12 +23,9 @@ def _get_python_symbols():
     """Lazy import for Python symbol types module."""
     global _python_symbols
     if _python_symbols is None:
-        try:
-            import cicada.languages.python.symbol_types as ps
+        import cicada.languages.python.symbol_types as ps
 
-            _python_symbols = ps
-        except ImportError:
-            _python_symbols = None
+        _python_symbols = ps
     return _python_symbols
 
 
@@ -36,12 +33,9 @@ def _get_typescript_symbols():
     """Lazy import for TypeScript symbol types module."""
     global _typescript_symbols
     if _typescript_symbols is None:
-        try:
-            import cicada.languages.typescript.symbol_types as ts
+        import cicada.languages.typescript.symbol_types as ts
 
-            _typescript_symbols = ts
-        except ImportError:
-            _typescript_symbols = None
+        _typescript_symbols = ts
     return _typescript_symbols
 
 
@@ -748,6 +742,8 @@ class SCIPConverter:
         # Build file-level module for top-level functions
         if functions or class_metadata_list:
             file_module_name = self._get_file_module_name(doc_data.relative_path)
+            if file_module_name is None:
+                return modules
 
             # Build function entries
             function_entries = []

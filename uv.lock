@@ -344,7 +344,7 @@ requires-dist = [
     { name = "lemminflect", specifier = ">=0.2.3" },
     { name = "mcp", specifier = ">=0.1.0" },
     { name = "pathspec", specifier = ">=0.12.0" },
-    { name = "protobuf", specifier = ">=4.0.0" },
+    { name = "protobuf", specifier = ">=5.26.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "simple-term-menu", specifier = ">=1.6.0" },
