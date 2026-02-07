@@ -1,6 +1,5 @@
 <div align="center">
-
-<img src="https://raw.githubusercontent.com/wende/cicada/main/public/cicada.png" alt="CICADA Logo" width="360"/>
+<img src="https://github.com/user-attachments/assets/699c0a3f-dfae-4e14-81db-c8ba970d9a35">
 
 # CICADA
 
