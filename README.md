@@ -3,6 +3,8 @@
 
 # CICADA
 
+<!-- mcp-name: io.github.wende/cicada -->
+
 ### **C**ode **I**ntelligence: **C**ontextual **A**nalysis, **D**iscovery, and **A**ttribution
 
 **Context compaction for AI code assistants** – Give your AI structured, token-efficient access to 17+ languages including Elixir, Python, TypeScript, JavaScript, Rust, and more.

@@ -78,6 +78,7 @@ tests/fixtures/**/cicada_index.json
 tests/fixtures/**/*lock.json
 tests/fixtures/**/uv.lock
 tests/fixtures/**/node_modules/
+tests/fixtures/.cicada/
 
 # Auto-generated protobuf files (previously gitignored, now tracked since SCIP is inlined)
 # cicada/languages/scip/*_pb2.py
