@@ -3,7 +3,7 @@
 
 # CICADA
 
-<!-- mcp-name: io.github.wende/cicada -->
+mcp-name: io.github.wende/cicada
 
 ### **C**ode **I**ntelligence: **C**ontextual **A**nalysis, **D**iscovery, and **A**ttribution
 

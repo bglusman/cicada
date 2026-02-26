@@ -137,11 +137,12 @@ jobs:
           TAG_NAME="${GITHUB_REF#refs/tags/}"
           echo "Tag: $TAG_NAME"
 
-          # RC releases can be from dev or main branch
-          if [[ "$TAG_NAME" == *"-rc"* ]]; then
+          # Pre-releases can be from dev or main branch.
+          # Accept both SemVer-style "-rcN" and PEP 440-style "rcN" tags.
+          if [[ "$TAG_NAME" =~ rc[0-9]+$ ]]; then
             git fetch origin dev main
             if git merge-base --is-ancestor HEAD origin/dev || git merge-base --is-ancestor HEAD origin/main; then
-              echo "✓ RC release allowed from dev or main branch"
+              echo "✓ Pre-release tag allowed from dev or main branch"
             else
               echo "Error: Tag must be on dev or main branch"
               exit 1
@@ -150,7 +151,7 @@ jobs:
             # Stable releases must be on main branch only
             git fetch origin main
             if ! git merge-base --is-ancestor HEAD origin/main; then
-              echo "Error: Stable release tag must be on main branch (use -rc suffix for dev branch releases)"
+              echo "Error: Stable release tag must be on main branch (use rcN or -rcN suffix for pre-releases)"
               exit 1
             fi
             echo "✓ Stable release on main branch"
@@ -223,11 +224,12 @@ jobs:
           TAG_NAME="${GITHUB_REF#refs/tags/}"
           echo "Tag: $TAG_NAME"
 
-          # RC releases can be from dev or main branch
-          if [[ "$TAG_NAME" == *"-rc"* ]]; then
+          # Pre-releases can be from dev or main branch.
+          # Accept both SemVer-style "-rcN" and PEP 440-style "rcN" tags.
+          if [[ "$TAG_NAME" =~ rc[0-9]+$ ]]; then
             git fetch origin dev main
             if git merge-base --is-ancestor HEAD origin/dev || git merge-base --is-ancestor HEAD origin/main; then
-              echo "✓ RC release allowed from dev or main branch"
+              echo "✓ Pre-release tag allowed from dev or main branch"
             else
               echo "Error: Tag must be on dev or main branch"
               exit 1
@@ -236,7 +238,7 @@ jobs:
             # Stable releases must be on main branch only
             git fetch origin main
             if ! git merge-base --is-ancestor HEAD origin/main; then
-              echo "Error: Stable release tag must be on main branch (use -rc suffix for dev branch releases)"
+              echo "Error: Stable release tag must be on main branch (use rcN or -rcN suffix for pre-releases)"
               exit 1
             fi
             echo "✓ Stable release on main branch"

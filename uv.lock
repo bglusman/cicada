@@ -283,7 +283,7 @@ wheels = [
 
 [[package]]
 name = "cicada-mcp"
-version = "0.6.3rc2"
+version = "0.6.4"
 source = { editable = "." }
 dependencies = [
     { name = "cicada-vector" },

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-02-26
+
+### Added
+
+- **Automatic SCIP Tool Installation** ([#237](https://github.com/wende/cicada/pull/237))
+  - Automatically installs missing SCIP indexer binaries with native package managers
+  - Covers Go, Ruby, Dart, Java/Scala (Coursier), C#/VB, Rust, and TypeScript toolchains
+  - Reduces first-run setup friction for SCIP-backed languages
+
+### Changed
+
+- **Release Workflow Pre-release Detection**
+  - PyPI publish workflow now accepts both `rcN` and `-rcN` tag suffixes
+  - Aligns branch checks with Python/PEP 440 versioning (`0.6.3rc2`)
+
+- **MCP Registry Validation Readiness**
+  - Added `mcp-name: io.github.wende/cicada` marker to README for PyPI ownership validation
+
 ## [0.6.3] - 2026-02-07
 
 ### Changed
@@ -1116,7 +1134,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Issues](https://github.com/wende/cicada/issues)
 - [MCP Documentation](https://modelcontextprotocol.io)
 
-[Unreleased]: https://github.com/wende/cicada/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/wende/cicada/compare/v0.6.4...HEAD
+[0.6.4]: https://github.com/wende/cicada/compare/v0.6.3rc2...v0.6.4
+[0.6.3]: https://github.com/wende/cicada/compare/v0.6.2...v0.6.3rc2
+[0.6.2]: https://github.com/wende/cicada/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/wende/cicada/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/wende/cicada/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/wende/cicada/compare/v0.5.1...v0.5.2
