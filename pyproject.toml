@@ -7,7 +7,7 @@ cicada-vector = { git = "https://github.com/wende/cicada-vector" }
 
 [project]
 name = "cicada-mcp"
-version = "0.6.4"
+version = "0.6.5"
 description = "Code Intelligence MCP for 15 languages"
 readme = "README.md"
 license = "MIT"

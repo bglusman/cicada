@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-03-03
+
+### Added
+
+- **Zipf Weighting for Keyword Search** ([#241](https://github.com/wende/cicada/pull/241))
+  - Rare keywords now score higher via Zipf (power-law) weighting
+  - Dense ranking with ex-aequo: equal-frequency keywords share the same rank
+  - Applied to both exact and wildcard scoring paths
+
+- **Shared GitIgnore Filtering** ([#242](https://github.com/wende/cicada/pull/242))
+  - New `GitIgnoreFilter` utility (`cicada/utils/gitignore.py`) consolidates `.gitignore` and `.git/info/exclude` handling
+  - Python SCIP indexer now correctly skips gitignored files
+  - All indexers share the same filtering logic
+
+### Fixed
+
+- **Graceful Embeddings Fallback**
+  - Lazy-load embeddings module to avoid crashes when `cicada-vector` is outdated
+  - Helpful upgrade message when `EmbeddingsIndexer` import fails
+  - Pinned `cicada-vector>=0.1.5`
+
+### Internal
+
+- Removed tracked fixture `.cicada` cache files
+- Added verbose "Performing full reindex..." messages to Python and SCIP indexers
+
 ## [0.6.4] - 2026-02-26
 
 ### Added
