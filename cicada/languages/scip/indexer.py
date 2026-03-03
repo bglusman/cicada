@@ -174,7 +174,9 @@ class GenericSCIPIndexer(BaseIndexer):
                 }
 
         if self.verbose:
-            if new_files or modified_files or deleted_files:
+            if force_full:
+                print("  Performing full reindex...")
+            elif new_files or modified_files or deleted_files:
                 print(
                     f"  Changes detected: {len(new_files)} new, "
                     f"{len(modified_files)} modified, {len(deleted_files)} deleted"
